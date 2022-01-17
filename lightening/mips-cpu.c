@@ -303,8 +303,7 @@ Jtype(uint32_t op, uint32_t addr)
 #define OP_SDBBP			0x3f
 
 /* lightning uses these, but it's not a complete implementation */
-#define NOP(i0)				_NOP() /* ??? */
-#define _NOP()				Rtype(OP_SPECIAL, 0, 0, 0, 0, OP_SLL)
+#define _NOP(i0)			Rtype(OP_SPECIAL, 0, 0, 0, 0, OP_SLL)
 #define _LUI(rt, i0)			Itype(OP_LUI, 0, rt, i0)
 #define _ADDU(rd, rs, rt)		Rtype(OP_SPECIAL, rs, rt, rd, 00, OP_ADDU)
 #define _DADDU(rd, rs, rt)		Rtype(OP_SPECIAL, rs, rt, rd, 00, OP_DADDU)
@@ -1959,6 +1958,31 @@ nei(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 		em_wp(_jit, _SLTU(r0, rn(_ZERO), r1));
 }
 
+static uint32_t
+patch_cc_jump(uint32_t inst, int32_t offset)
+{
+	assert(!(offset & 0x3));
+	instr_t i;
+	i.w = inst;
+	i.I.i0 = offset >> 2;
+}
+
+static jit_reloc_t
+emit_cc_jump(jit_state_t *_jit, uint32_t inst)
+{
+	while(1){
+		uint8_t *pc_base = _jit->pc.uc;
+		int32_t off = (uint8_t *)jit_address(_jit) - pc_base;
+		jit_reloc_t w =
+			jit_reloc(_jit, JIT_RELOC_JCC_WITH_VENEER, 0, _jit->pc.uc, pc_base, 0);
+		uint8_t cc_jump_width = 18;
+		if(add_pending_literal(_jit, w, cc_jump_width - 1)){
+			em_wp(_jit, patch_cc_jump(inst, off));
+			return w;
+		}
+	}
+}
+
 	static jit_reloc_t
 bltr(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
@@ -1967,7 +1991,7 @@ bltr(jit_state_t *_jit, int32_t r0, int32_t r1)
 	   em_wp(_jit, _SLT(rn(t0), r0, r1));
 	   jit_reloc_t w = _jit->pc.w;
 	   em_wp(_jit, _BNE(rn(t0), rn(_ZERO), ((i0 - w) >> 2) - 1));
-	   em_wp(_jit, NOP(1));
+	   em_wp(_jit, _NOP(1));
 	   unget_temp_gpr(_jit);
 
 	   return (w);
@@ -1982,7 +2006,7 @@ bltr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 	   em_wp(_jit, _SLTU(rn(t0), r0, r1));
 	   jit_reloc_t w = _jit->pc.w;
 	   em_wp(_jit, _BNE(rn(t0), rn(_ZERO), ((i0 - w) >> 2) - 1));
-	   em_wp(_jit, NOP(1));
+	   em_wp(_jit, _NOP(1));
 	   unget_temp_gpr(_jit);
 
 	   return (w);
@@ -2018,7 +2042,7 @@ bler(jit_state_t *_jit, int32_t r0, int32_t r1)
 	em_wp(_jit, _SLT(rn(t0), r1, r0));
 	jit_reloc_t w = _jit->pc.w;
 	em_wp(_jit, _BEQ(rn(t0), rn(_ZERO), ((i0 - w) >> 2) - 1));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 	unget_temp_gpr(_jit);
 
 	return (w);
@@ -2033,7 +2057,7 @@ bler_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 	em_wp(_jit, _SLTU(rn(t0), r1, r0));
 	jit_reloc_t w = _jit->pc.w;
 	em_wp(_jit, _BEQ(rn(t0), rn(_ZERO), ((i0 - w) >> 2) - 1));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 	unget_temp_gpr(_jit);
 
 	return (w);
@@ -2067,7 +2091,7 @@ beqr(jit_state_t *_jit, int32_t r0, int32_t r1)
 	/* rewrite
 	jit_reloc_t w = _jit->pc.w;
 	em_wp(_jit, _BEQ(r0, r1, ((i0 - w) >> 2) - 1));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 
 	return (w);
 	*/
@@ -2092,7 +2116,7 @@ bger(jit_state_t *_jit, int32_t r0, int32_t r1)
 	em_wp(_jit, _SLT(rn(t0), r0, r1));
 	jit_reloc_t w = _jit->pc.w;
 	em_wp(_jit, _BEQ(rn(t0), rn(_ZERO), ((i0 - w) >> 2) - 1));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 	unget_temp_gpr(_jit);
 
 	return (w);
@@ -2107,7 +2131,7 @@ bger_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 	em_wp(_jit, _SLTU(rn(t0), r0, r1));
 	jit_reloc_t w = _jit->pc.w;
 	em_wp(_jit, _BEQ(rn(t0), rn(_ZERO), ((i0 - w) >> 2) - 1));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 	unget_temp_gpr(_jit);
 
 	return (w);
@@ -2176,7 +2200,7 @@ bner(jit_state_t *_jit, int32_t r0, int32_t r1)
 	/* rewrite
 	   jit_reloc_t w = _jit->pc.w;
 	   em_wp(_jit, _BNE(r0, r1, ((i0 - w) >> 2) - 1));
-	   em_wp(_jit, NOP(1));
+	   em_wp(_jit, _NOP(1));
 
 	   return (w);
 	   */
@@ -2211,7 +2235,7 @@ emit_jump(jit_state_t *_jit, uint32_t inst)
 jmpr(jit_state_t *_jit, int32_t r0)
 {
 	em_wp(_jit, _JR(r0));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 }
 
 static void
@@ -2225,7 +2249,7 @@ jmpi(jit_state_t *_jit, jit_word_t i0)
 {
 	if (((_jit->pc.w + sizeof(int32_t)) & 0xf0000000) == (i0 & 0xf0000000)) {
 		em_wp(_jit, _J((i0 & ~0xf0000000) >> 2));
-		NOP(1);
+		_NOP(1);
 	}
 	else {
 		jit_gpr_t t0 = get_temp_gpr(_jit);
@@ -2551,7 +2575,7 @@ callr(jit_state_t *_jit, int32_t r0)
 	   */
 
 	em_wp(_jit, _JALR(rn(_RA), r0));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 }
 
 	static void
@@ -2560,7 +2584,7 @@ calli(jit_state_t *_jit, jit_word_t i0)
 	jit_gpr_t t0 = get_temp_gpr(_jit);
 	movi(_jit, rn(t0), i0);
 	em_wp(_jit, _JALR(rn(_RA), rn(t0)));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 	unget_temp_gpr(_jit);
 }
 
@@ -2568,7 +2592,7 @@ static void
 ret(jit_state_t *_jit)
 {
 	em_wp(_jit, _JALR(rn(_ZERO), rn(_RA)));
-	em_wp(_jit, NOP(1));
+	em_wp(_jit, _NOP(1));
 }
 
 static void
