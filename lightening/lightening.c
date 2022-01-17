@@ -1,5 +1,4 @@
-/*
- * Copyright (C) 2012-2020  Free Software Foundation, Inc.
+/* Copyright (C) 2012-2020  Free Software Foundation, Inc.
  *
  * This file is part of GNU lightning.
  *
@@ -264,11 +263,27 @@ get_temp_gpr(jit_state_t *_jit)
 {
   switch(_jit->temp_gpr_saved++)
     {
-    case 0:
+  case 0:
       return JIT_TMP0;
 #ifdef JIT_TMP1
     case 1:
       return JIT_TMP1;
+#endif
+#ifdef JIT_TMP2
+    case 2:
+      return JIT_TMP2;
+#endif
+#ifdef JIT_TMP3
+    case 3:
+      return JIT_TMP3;
+#endif
+#ifdef JIT_TMP4
+    case 4:
+      return JIT_TMP4;
+#endif
+#ifdef JIT_TMP5
+    case 5:
+      return JIT_TMP5;
 #endif
     default:
       abort();

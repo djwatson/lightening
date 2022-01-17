@@ -24,10 +24,7 @@
 #    define NEW_ABI		1
 #endif
 
-#if 0
-/* not sure if this is needed */
 #define JIT_NEEDS_LITERAL_POOL 1
-#endif
 
 #define _ZERO	JIT_GPR(0)
 #define _AT	JIT_GPR(1)
@@ -127,12 +124,12 @@
 #define JIT_R7	_T3
 #endif
 
-#define JIT_R8	_T4
-#define JIT_R9	_T5
-#define JIT_R10	_T6
-#define JIT_CARRY	_T7
-#define JIT_TMP0	_T8
-#define JIT_TMP1	_T9
+#define JIT_CARRY	_T4
+#define JIT_TMP0	_T5
+#define JIT_TMP1	_T6
+#define JIT_TMP2	_T7
+#define JIT_TMP3	_T8
+#define JIT_TMP4	_T9
 
 #define JIT_V0	_S0
 #define JIT_V1	_S1
