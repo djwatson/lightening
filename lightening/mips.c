@@ -39,14 +39,14 @@ static const int abi_fpr_arg_count = sizeof(abi_fpr_args) / sizeof(abi_fpr_args[
 
 struct abi_arg_iterator {
 	const jit_operand_t *args;
-	size_t argc;
+	int argc;
 
-	size_t arg_idx;
-	size_t gpr_idx;
-	size_t fpr_idx;
-	uint32_t vfp_used_registers;
-	size_t stack_size;
-	size_t stack_padding;
+	int arg_idx;
+	int gpr_idx;
+	int fpr_idx;
+	int vfp_used_registers;
+	int stack_size;
+	int stack_padding;
 };
 
 static size_t page_size;
@@ -65,6 +65,7 @@ jit_get_cpu(void)
 jit_bool_t
 jit_init(jit_state_t *_jit)
 {
+	(void)_jit;
 	return 1;
 }
 
@@ -108,7 +109,7 @@ jit_flush(void *fptr, void *tptr)
 {
 	jit_word_t f = (jit_word_t)fptr & -page_size;
 	jit_word_t t = (((jit_word_t)tptr) + page_size - 1) & -page_size;
-	__clear_cache((void *)f, (void *)f);
+	__clear_cache((void *)f, (void *)t);
 }
 
 static inline size_t
@@ -120,6 +121,9 @@ jit_stack_alignment(void)
 static void
 jit_try_shorten(jit_state_t *_jit, jit_reloc_t reloc, jit_pointer_t addr)
 {
+	(void)_jit;
+	(void)reloc;
+	(void)addr;
 }
 
 static void*
@@ -260,7 +264,9 @@ jmp_without_veneer(jit_state_t *_jit)
 static void
 patch_load_from_pool_offset(uint32_t *loc, int32_t v)
 {
-	instr_t *i = (instr_t *)loc;
+	load_from_pool_t *i = (load_from_pool_t *)loc;
+	i->inst.auipc.I.i0 = (v >> 8);
+	i->inst.load.I.i0 = v & 0xffff;
 }
 
 static int32_t

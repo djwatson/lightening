@@ -608,7 +608,6 @@ str_d(jit_state_t *_jit,int32_t r0, int32_t r1)
 static void
 sti_d(jit_state_t *_jit, jit_word_t i0, int32_t r0)
 {
-    int32_t		t0;
 #  if __WORDSIZE == 64 || NEW_ABI
     if (can_sign_extend_short_p(i0))
 	em_wp(_jit, _SDC1(r0, i0, rn(_ZERO)));
@@ -708,12 +707,6 @@ static jit_reloc_t
 bct(jit_state_t *_jit)
 {
 	return emit_cc_jump(_jit, _BC1T(0));
-}
-
-static jit_reloc_t
-bcf(jit_state_t *_jit)
-{
-	return emit_cc_jump(_jit, _BC1F(0));
 }
 
 static jit_reloc_t

@@ -998,7 +998,7 @@ move_one(jit_state_t *_jit, jit_operand_t *dst, jit_operand_t *src,
         break;
       case BEING_MOVED: {
         jit_operand_t tmp;
-        if (is_fpr_arg (src[j].kind)) {
+        if (is_fpr_arg ((enum jit_operand_abi)src[j].kind)) {
           tmp_fpr = 1;
           tmp = jit_operand_fpr(src[j].abi, get_temp_fpr(_jit));
         } else {
@@ -1209,6 +1209,8 @@ static const size_t vf_count = ARRAY_SIZE(user_callee_save_fprs);
 size_t
 jit_enter_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
 {
+  (void)frame_size;
+
   ASSERT(v <= v_count);
   ASSERT(vf <= vf_count);
 
