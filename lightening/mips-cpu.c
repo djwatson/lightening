@@ -381,6 +381,13 @@ Jtype(uint32_t op, uint32_t addr)
 
 #define _SDBBP()			Rtype(OP_SPECIAL2, 0, 0, 0, 0, OP_SDBBP)
 #define _AUIPC(rs, im)			Itype(OP_PCREL, rs, OP_AUIPC, im)
+#define _SYNC(st)			Rtype(OP_SPECIAL, 0, 0, 0, st, OP_SYNC)
+/* note: these use pre-release 6 formats, should probably eventually add in some
+ * detection */
+#define _LL(rt, of, bs)			Itype(OP_LL, bs, rt, of)
+#define _LLD(rt, of, bs)		Itype(OP_LLD, bs, rt, of)
+#define _SC(rt, of, bs)			Itype(OP_SC, bs, rt, of)
+#define _SCD(rt, of, bs)		Itype(OP_SCD, bs, rt, of)
 
 #if __WORDSIZE == 64
 #define _WADDR(rd, rs, rt)		_DADDU(rd, rs, rt)
@@ -393,7 +400,9 @@ Jtype(uint32_t op, uint32_t addr)
 #define _WSLLV(rd, rs, rt)		_DSLLV(rd, rs, rt)
 #define _WSRAV(rd, rs, rt)		_DSRAV(rd, rs, rt)
 #define _WSRLV(rd, rs, rt)		_DSRLV(rd, rs, rt)
-#define _WLD(rt, bs, of)		_LD(rt, bs, of)
+#define _WLD(rt, of, bs)		_LD(rt, of, bs)
+#define _WLL(rt, of, bs)		_LLD(rt, of, bs)
+#define _WSC(rt, of, bs)		_SCD(rt, of, bs)
 #else
 #define _WADDR(rd, rs, rt)		_ADDU(rd, rs, rt)
 #define _WADDIU(rd, rs, i0)		_ADDIU(rd, rs, rt)
@@ -405,7 +414,9 @@ Jtype(uint32_t op, uint32_t addr)
 #define _WSLLV(rd, rs, rt)		_SLLV(rd, rs, rt)
 #define _WSRAV(rd, rs, rt)		_SRAV(rd, rs, rt)
 #define _WSRLV(rd, rs, rt)		_SRLV(rd, rs, rt)
-#define _WLD(rt, bs, of)		_LW(rt, bs, of)
+#define _WLD(rt, of, bs)		_LW(rt, of, bs)
+#define _WLL(rt, of, bs)		_LL(rt, of, bs)
+#define _WSC(rt, of, bs)		_SC(rt, of, bs)
 #endif
 
 static void addr(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2);
@@ -1122,7 +1133,8 @@ xori(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 static void
 movr(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-	em_wp(_jit, _OR(r0, r1, rn(_ZERO)));
+	if(r0 != r1)
+		em_wp(_jit, _OR(r0, r1, rn(_ZERO)));
 }
 
 	static void
@@ -2655,6 +2667,65 @@ retval_l(jit_state_t *_jit, int32_t r0)
 }
 #endif
 
+static void
+ldr_atomic(jit_state_t *_jit, int32_t dst, int32_t loc)
+{
+	em_wp(_jit, _SYNC(0x00));
+	ldr_i(_jit, dst, loc);
+	em_wp(_jit, _SYNC(0x00));
+}
+
+static void
+str_atomic(jit_state_t *_jit, int32_t loc, int32_t val)
+{
+	em_wp(_jit, _SYNC(0x00));
+	str_i(_jit, loc, val);
+	em_wp(_jit, _SYNC(0x00));
+}
+
+static void
+swap_atomic(jit_state_t *_jit, int32_t dst, int32_t loc, int32_t val)
+{
+	jit_gpr_t t0 = get_temp_gpr(_jit);
+	jit_gpr_t t1 = get_temp_gpr(_jit);
+
+	em_wp(_jit, _SYNC(0x00));
+
+	void *retry = jit_address(_jit);
+	movr(_jit, rn(t1), val);
+	em_wp(_jit, _WLL(dst, loc, 0));
+	em_wp(_jit, _WSC(rn(t1), loc, 0));
+	jit_patch_there(_jit, bner(_jit, rn(t1), rn(_ZERO)), retry);
+
+	em_wp(_jit, _SYNC(0x00));
+
+	unget_temp_gpr(_jit);
+	unget_temp_gpr(_jit);
+}
+
+static void
+cas_atomic(jit_state_t *_jit, int32_t dst, int32_t loc, int32_t expected,
+		int32_t desired)
+{
+	jit_gpr_t t0 = get_temp_gpr(_jit);
+	jit_gpr_t t1 = get_temp_gpr(_jit);
+
+	void *retry = jit_address(_jit);
+
+	em_wp(_jit, _WLL(rn(t0), 0, loc));
+	jit_reloc_t fail = bner(_jit, rn(t0), expected);
+	em_wp(_jit, _WSC(rn(t1), desired, loc));
+
+	jit_patch_there(_jit, bner(_jit, rn(t1), rn(_ZERO)), retry);
+	jit_patch_here(_jit, fail);
+	em_wp(_jit, _SYNC(0x00));
+
+	movr(_jit, dst, rn(t0));
+
+	unget_temp_gpr(_jit);
+	unget_temp_gpr(_jit);
+}
+
 	static void
 nop(jit_state_t *_jit, int32_t i0)
 {
@@ -2667,8 +2738,7 @@ nop(jit_state_t *_jit, int32_t i0)
 	static void
 mfence(jit_state_t *_jit)
 {
-	(void *)_jit;
-	// I don't think MIPS has fences?
+	em_wp(_jit, _SYNC(0x00));
 }
 
 	static void
