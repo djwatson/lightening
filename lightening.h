@@ -79,6 +79,18 @@ jit_same_fprs (jit_fpr_t a, jit_fpr_t b)
 #  include "lightening/s390.h"
 #endif
 
+#ifndef JIT_JMP_MAX_SIZE
+#define JIT_JMP_MAX_SIZE sizeof(uint32_t)
+#endif
+
+#ifndef JIT_LITERAL_MAX_SIZE
+#define JIT_LITERAL_MAX_SIZE (sizeof(uintptr_t) * 2)
+#endif
+
+#ifndef JIT_INST_MAX_SIZE
+#define JIT_INST_MAX_SIZE sizeof(uint32_t)
+#endif
+
 enum jit_reloc_kind
 {
   JIT_RELOC_ABSOLUTE,
@@ -90,6 +102,9 @@ enum jit_reloc_kind
   JIT_RELOC_JMP_WITH_VENEER,
   JIT_RELOC_JCC_WITH_VENEER,
   JIT_RELOC_LOAD_FROM_POOL,
+#endif
+#ifdef JIT_USE_IMMEDIATE_RELOC
+  JIT_RELOC_IMMEDIATE,
 #endif
   JIT_RELOC_MASK = 15,
   JIT_RELOC_FLAG_0 = 16,
@@ -134,7 +149,10 @@ enum jit_operand_kind
   JIT_OPERAND_KIND_IMM,
   JIT_OPERAND_KIND_GPR,
   JIT_OPERAND_KIND_FPR,
-  JIT_OPERAND_KIND_MEM
+  JIT_OPERAND_KIND_MEM,
+#ifdef JIT_PASS_DOUBLES_IN_GPR_PAIRS
+  JIT_OPERAND_KIND_GPR_PAIR,
+#endif
 };
 
 typedef struct jit_operand
@@ -145,8 +163,15 @@ typedef struct jit_operand
   {
     intptr_t imm;
     struct { jit_gpr_t gpr; ptrdiff_t addend; } gpr;
-    jit_fpr_t fpr;
+    struct { jit_fpr_t fpr;
+#if JIT_PASS_FLOATS_IN_GPRS
+	    jit_gpr_t gpr;
+#endif
+    } fpr;
     struct { jit_gpr_t base; ptrdiff_t offset; ptrdiff_t addend; } mem;
+#if JIT_PASS_DOUBLES_IN_GPR_PAIRS
+    struct { jit_gpr_t l; jit_gpr_t h; } gpr_pair;
+#endif
   } loc;
 } jit_operand_t;
 
@@ -173,7 +198,7 @@ jit_operand_gpr (enum jit_operand_abi abi, jit_gpr_t gpr)
 static inline jit_operand_t
 jit_operand_fpr (enum jit_operand_abi abi, jit_fpr_t fpr)
 {
-  return (jit_operand_t){ abi, JIT_OPERAND_KIND_FPR, { .fpr = fpr } };
+  return (jit_operand_t){ abi, JIT_OPERAND_KIND_FPR, { .fpr = { fpr } } };
 }
 
 static inline jit_operand_t
@@ -189,6 +214,15 @@ jit_operand_mem (enum jit_operand_abi abi, jit_gpr_t base, ptrdiff_t offset)
 {
   return jit_operand_mem_with_addend (abi, base, offset, 0);
 }
+
+#ifdef JIT_PASS_DOUBLES_IN_GPR_PAIRS
+static inline jit_operand_t
+jit_operand_gpr_pair(enum jit_operand_abi abi, jit_gpr_t l, jit_gpr_t h)
+{
+	return (jit_operand_t){abi, JIT_OPERAND_KIND_GPR_PAIR,
+		{ .gpr_pair = { l, h } } };
+}
+#endif
 
 static inline jit_operand_t
 jit_operand_addi (jit_operand_t op, ptrdiff_t addend)
