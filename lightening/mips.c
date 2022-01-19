@@ -52,19 +52,30 @@ static size_t page_size;
 /*
  * Implementation
  */
+
+static jit_bool_t
+has_fpu()
+{
+#if __mips_hard_float
+	return 1;
+#else
+	return 0;
+#endif
+}
+
 jit_bool_t
 jit_get_cpu(void)
 {
 	page_size = sysconf(_SC_PAGE_SIZE);
 	/* TODO: extensions? */
-	return 1;
+	return has_fpu();
 }
 
 jit_bool_t
 jit_init(jit_state_t *_jit)
 {
 	(void)_jit;
-	return 1;
+	return has_fpu();
 }
 
 static size_t

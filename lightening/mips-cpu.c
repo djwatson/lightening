@@ -420,7 +420,7 @@ Jtype(int32_t op, int32_t addr)
 #define _WSC(rt, of, bs)		_SCD(rt, of, bs)
 #else
 #define _WADDR(rd, rs, rt)		_ADDU(rd, rs, rt)
-#define _WADDIU(rd, rs, i0)		_ADDIU(rd, rs, rt)
+#define _WADDIU(rd, rs, i0)		_ADDIU(rd, rs, i0)
 #define _WSUBR(rd, rs, rt)		_SUBU(rd, rs, rt)
 #define _WMULT(rs, rt)			_MULT(rs, rt)
 #define _WMULTU(rs, rt)			_MULTU(rs, rt)
@@ -953,6 +953,12 @@ rshi_u(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 		em_wp(_jit, _DSRL32(r0, r1, i0 - 32));
 }
 #else
+static void
+lshi(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
+{
+	em_wp(_jit, _SLLV(r0, r1, i0));
+}
+
 	static void
 rshi(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 {
@@ -1698,7 +1704,6 @@ stxi_l(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 }
 #endif
 
-#  if __BYTE_ORDER == __LITTLE_ENDIAN
 	static void
 bswapr_us(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
@@ -1735,6 +1740,7 @@ bswapr_ui(jit_state_t *_jit, int32_t r0, int32_t r1)
 	unget_temp_gpr(_jit);
 }
 
+#if __WORDSIZE == 64
 	static void
 bswapr_ul(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
@@ -1746,7 +1752,7 @@ bswapr_ul(jit_state_t *_jit, int32_t r0, int32_t r1)
 	orr(_jit, r0, r0, rn(t0));
 	unget_temp_gpr(_jit);
 }
-#  endif
+#endif
 
 	static void
 extr_uc(jit_state_t *_jit, int32_t r0, int32_t r1)
@@ -2512,7 +2518,12 @@ retval_us(jit_state_t *_jit, int32_t r0)
 	static void
 retval_i(jit_state_t *_jit, int32_t r0)
 {
+#if __WORDSIZE == 64
 	extr_i(_jit, r0, rn(_V0));
+#else
+	if(r0 != rn(_V0))
+		movr(_jit, r0, rn(_V0));
+#endif
 }
 
 #if __WORDSIZE == 64
@@ -2525,7 +2536,8 @@ retval_ui(jit_state_t *_jit, int32_t r0)
 	static void
 retval_l(jit_state_t *_jit, int32_t r0)
 {
-	movr(_jit, r0, rn(_V0));
+	if(r0 != rn(_V0))
+		movr(_jit, r0, rn(_V0));
 }
 #endif
 

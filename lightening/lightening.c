@@ -702,7 +702,7 @@ is_gpr_arg(enum jit_operand_abi arg)
 
 static void
 abi_imm_to_gpr(jit_state_t *_jit, enum jit_operand_abi abi, jit_gpr_t dst,
-               intptr_t imm)
+               jit_imm_t imm)
 {
   switch (abi) {
   case JIT_OPERAND_ABI_UINT8:
@@ -721,6 +721,7 @@ abi_imm_to_gpr(jit_state_t *_jit, enum jit_operand_abi abi, jit_gpr_t dst,
     ASSERT(INT16_MIN <= imm);
     ASSERT(imm <= INT16_MAX);
     break;
+#if __WORDSIZE > 32
   case JIT_OPERAND_ABI_UINT32:
     ASSERT(0 <= imm);
     ASSERT(imm <= UINT32_MAX);
@@ -729,9 +730,12 @@ abi_imm_to_gpr(jit_state_t *_jit, enum jit_operand_abi abi, jit_gpr_t dst,
     ASSERT(INT32_MIN <= imm);
     ASSERT(imm <= INT32_MAX);
     break;
-#if __WORDSIZE > 32
   case JIT_OPERAND_ABI_UINT64:
   case JIT_OPERAND_ABI_INT64:
+    break;
+#else
+  case JIT_OPERAND_ABI_UINT32:
+  case JIT_OPERAND_ABI_INT32:
     break;
 #endif
   case JIT_OPERAND_ABI_POINTER:

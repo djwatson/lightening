@@ -16,6 +16,8 @@
  * Authors:
  *	Paulo Cesar Pereira de Andrade
  */
+#define BE_P			(__BYTE_ORDER == __BIG_ENDIAN)
+#define LE_P			(__BYTE_ORDER == __LITTLE_ENDIAN)
 #define FMT_S			0x10		/* float32 */
 #define FMT_D			0x11		/* float64 */
 #define FMT_W			0x14		/* int32 */
@@ -250,10 +252,12 @@ static jit_reloc_t bltgtr_d(jit_state_t *_jit, int32_t r0, int32_t r1);
 static jit_reloc_t bordr_d(jit_state_t *_jit, int32_t r0, int32_t r1);
 static jit_reloc_t bunordr_d(jit_state_t *_jit, int32_t r0, int32_t r1);
 
-static void truncr_f_l(jit_state_t *_jit, int32_t r0, int32_t r1);
-static void truncr_d_l(jit_state_t *_jit, int32_t r0, int32_t r1);
 static void truncr_f_i(jit_state_t *_jit, int32_t r0, int32_t i0);
 static void truncr_d_i(jit_state_t *_jit, int32_t r0, int32_t i0);
+#if __WORDSIZE == 64
+static void truncr_f_l(jit_state_t *_jit, int32_t r0, int32_t r1);
+static void truncr_d_l(jit_state_t *_jit, int32_t r0, int32_t r1);
+#endif
 
 static void extr_f(jit_state_t *_jit, int32_t r0, int32_t r1);
 static void extr_d(jit_state_t *_jit, int32_t r0, int32_t r1);
