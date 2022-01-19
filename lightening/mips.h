@@ -25,6 +25,7 @@
 #endif
 
 #define JIT_NEEDS_LITERAL_POOL 1
+#define JIT_USE_IMMEDIATE_RELOC 1
 
 #define _ZERO	JIT_GPR(0)
 #define _AT	JIT_GPR(1)
@@ -106,6 +107,7 @@
 
 #define JIT_LR	_RA
 #define JIT_SP	_SP
+#define JIT_FP	_FP
 
 #define JIT_R0	_A0
 #define JIT_R1	_A1
@@ -172,5 +174,13 @@
 #define JIT_VF2	_F28
 #define JIT_VF3	_F30
 
-#define JIT_PLATFORM_CALLEE_SAVE_GPRS	_SP, _FP, _GP
+#if NEW_ABI
+/* _RA is in some documents referred to as caller-save, but storing it
+ * in the function stack frame works equally well, which is what we do here
+ * (gcc apparently does this)
+ * */
+#define JIT_PLATFORM_CALLEE_SAVE_GPRS _SP, _FP, _GP, _RA
+#else
+#define JIT_PLATFORM_CALLEE_SAVE_GPRS _SP, _FP, _RA
+#endif
 #endif /* _jit_mips_h */

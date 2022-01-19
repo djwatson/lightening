@@ -28,9 +28,10 @@ static const jit_gpr_t abi_gpr_args[] = {
 };
 
 static const jit_fpr_t abi_fpr_args[] = {
-	_F12, _F14,
 #if NEW_ABI
-	_F16, _F18,
+	_F12, _F13, _F14, _F15, _F16, _F17, _F18, _F19
+#else
+	_F12, _F14
 #endif
 };
 
@@ -42,9 +43,6 @@ struct abi_arg_iterator {
 	int argc;
 
 	int arg_idx;
-	int gpr_idx;
-	int fpr_idx;
-	int vfp_used_registers;
 	int stack_size;
 	int stack_padding;
 };
@@ -89,16 +87,20 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 {
 	ASSERT(iter->arg_idx < iter->argc);
 	enum jit_operand_abi abi = iter->args[iter->arg_idx].abi;
-	iter->arg_idx++;
-	if(is_gpr_arg(abi) && iter->gpr_idx < abi_gpr_arg_count) {
-		*arg = jit_operand_gpr(abi, abi_gpr_args[iter->gpr_idx++]);
+	int idx = iter->arg_idx++;
+#if NEW_ABI
+	if(is_gpr_arg(abi) && idx < 8) {
+		*arg = jit_operand_gpr(abi, abi_gpr_args[idx]);
 		return;
 	}
 
-	if(is_fpr_arg(abi) && iter->fpr_idx < abi_fpr_arg_count) {
-		*arg = jit_operand_fpr(abi, abi_fpr_args[iter->gpr_idx++]);
+	if(is_fpr_arg(abi) && idx < 8) {
+		*arg = jit_operand_fpr(abi, abi_fpr_args[idx]);
 		return;
 	}
+#else
+	/* TODO: old argument passing is a mess */
+#endif
 
 	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
 	iter->stack_size += sizeof(intmax_t);
@@ -115,7 +117,11 @@ jit_flush(void *fptr, void *tptr)
 static inline size_t
 jit_stack_alignment(void)
 {
+#if NEW_ABI
 	return 8;
+#else
+	return 4;
+#endif
 }
 
 static void
@@ -132,113 +138,6 @@ bless_function_pointer(void *ptr)
 	return ptr;
 }
 
-struct veneer {
-	instr_t auipc;
-	instr_t ld;
-	instr_t jr;
-#if __WORDSIZE == 64
-	uint64_t address;
-#else
-	uint32_t address;
-#endif
-};
-
-static void
-emit_veneer(jit_state_t *_jit, jit_pointer_t target)
-{
-	jit_gpr_t t0 = get_temp_gpr(_jit);
-	emit_u32(_jit, _AUIPC(rn(t0), 0));
-#if __WORDSIZE == 64
-	emit_u32(_jit, _LD(rn(t0), rn(t0), 12));
-#else
-	emit_u32(_jit, _LW(rn(t0), rn(t0), 12));
-#endif
-
-	emit_u32(_jit, _JR(rn(t0)));
-
-#if __WORDSIZE == 64
-	emit_u64(_jit, (uint64_t)target);
-#else
-	emit_u32(_jit, (uint64_t)target);
-#endif
-}
-
-static void
-patch_veneer(uint32_t *loc, jit_pointer_t addr)
-{
-	struct veneer *v = (struct veneer *)loc;
-#if __WORDSIZE == 64
-	v->address = (uint64_t)addr;
-#else
-	v->address = (uint32_t)addr;
-#endif
-}
-
-/*
- * Conditional jumps
- */
-static void
-patch_jcc_offset(uint32_t *loc, ptrdiff_t v)
-{
-	instr_t *i = (instr_t *)loc;
-	i->I.i0 = v >> 2;
-}
-
-static void
-patch_veneer_jcc_offset(uint32_t *loc, ptrdiff_t offset){
-	patch_jcc_offset(loc, offset);
-}
-
-static int32_t
-read_jcc_offset(uint32_t *loc)
-{
-	instr_t *i = (instr_t *)loc;
-	return i->I.i0 << 2;
-}
-
-static int
-offset_in_jcc_range(ptrdiff_t offset, int flags)
-{
-	(void)flags;
-
-	if(offset & 0x3)
-		return 0;
-	else
-		return simm16_p(offset);
-}
-
-/*
- * Unconditional jumps
- */
-static int32_t
-read_jmp_offset(uint32_t *loc)
-{
-	instr_t *i = (instr_t *)loc;
-	return i->I.i0 << 2;
-}
-
-static int
-offset_in_jmp_range(ptrdiff_t offset, int flags)
-{
-	(void)flags;
-	if(offset & 0x3)
-		return 0;
-
-	return simm16_p(offset); /* TODO: make sure we only use branches? */
-}
-
-static void
-patch_jmp_offset(uint32_t *loc, ptrdiff_t v)
-{
-	instr_t *i = (instr_t *)loc;
-	i->I.i0 = v >> 2; /* should really check this */
-}
-
-static void
-patch_veneer_jmp_offset(uint32_t *loc, ptrdiff_t offset)
-{
-	patch_jmp_offset(loc, offset);
-}
 
 /*
  * Jumps around the veneer
@@ -254,7 +153,7 @@ static uint32_t*
 jmp_without_veneer(jit_state_t *_jit)
 {
 	uint32_t *loc = _jit->pc.ui;
-	emit_u32(_jit, _BEQ(0, 0, 0));
+	emit_u32(_jit, _BEQ(rn(_ZERO), rn(_ZERO), 0));
 	return loc;
 }
 
@@ -264,14 +163,16 @@ jmp_without_veneer(jit_state_t *_jit)
 static void
 patch_load_from_pool_offset(uint32_t *loc, int32_t v)
 {
-	load_from_pool_t *i = (load_from_pool_t *)loc;
-	i->inst.auipc.I.i0 = (v >> 8);
-	i->inst.load.I.i0 = v & 0xffff;
+	(void)loc; (void)v;
+	/* not used by this backend */
+	abort();
 }
 
 static int32_t
 read_load_from_pool_offset(uint32_t *loc)
 {
-	load_from_pool_t *i = (load_from_pool_t *)loc;
-	return (i->inst.auipc.I.i0 << 16) + i->inst.load.I.i0;
+	(void)loc;
+	abort();
+	return 0;
+	/* not used by this backend */
 }

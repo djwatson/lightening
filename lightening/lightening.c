@@ -116,6 +116,10 @@ static void patch_veneer(uint32_t *loc, jit_pointer_t addr);
 static int32_t read_load_from_pool_offset(uint32_t *loc);
 #endif
 
+#ifdef JIT_USE_IMMEDIATE_RELOC
+static void patch_immediate_reloc(uint32_t *loc, jit_pointer_t addr);
+#endif
+
 static jit_bool_t is_fpr_arg(enum jit_operand_abi arg);
 static jit_bool_t is_gpr_arg(enum jit_operand_abi arg);
 static void reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
@@ -483,6 +487,12 @@ jit_patch_there(jit_state_t* _jit, jit_reloc_t reloc, jit_pointer_t addr)
         *(uintptr_t *) target = (uintptr_t) addr;
       }
       return;
+    }
+#endif
+#ifdef JIT_USE_IMMEDIATE_RELOC
+    case JIT_RELOC_IMMEDIATE: {
+	patch_immediate_reloc(loc.ui, addr);
+	return;
     }
 #endif
     case JIT_RELOC_REL32:
