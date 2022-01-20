@@ -27,6 +27,10 @@
 #define JIT_NEEDS_LITERAL_POOL 1
 #define JIT_USE_IMMEDIATE_RELOC 1
 
+#if !NEW_ABI
+#define JIT_PASS_DOUBLES_IN_GPR_PAIRS 1
+#endif
+
 #define _ZERO	JIT_GPR(0)
 #define _AT	JIT_GPR(1)
 #define _V0	JIT_GPR(2)

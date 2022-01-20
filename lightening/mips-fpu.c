@@ -199,6 +199,10 @@ static void absr_d(jit_state_t *_jit, int32_t r0, int32_t r1);
 
 static void movr_f(jit_state_t *_jit, int32_t r0, int32_t r1);
 static void movr_d(jit_state_t *_jit, int32_t r0, int32_t r1);
+#if __WORDSIZE == 32
+static void movr_d_ww(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2);
+static void movr_ww_d(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2);
+#endif
 
 static void retval_f(jit_state_t *_jit, int32_t r0);
 static void retval_d(jit_state_t *_jit, int32_t r0);
@@ -664,6 +668,24 @@ movr_d(jit_state_t *_jit, int32_t r0, int32_t r1)
     if (r0 != r1)
 	em_wp(_jit, _MOV_D(r0, r1));
 }
+
+#if !NEW_ABI
+static void
+movr_d_ww(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
+{
+	assert(r0 == r1 - 1);
+	em_wp(_jit, _MFC1(r0, r2 + BE_P));
+	em_wp(_jit, _MFC1(r1, r2 + LE_P));
+}
+
+static void
+movr_ww_d(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
+{
+	assert(r1 == r2 - 1);
+	em_wp(_jit, _MFC1(r1, r0 + BE_P));
+	em_wp(_jit, _MFC1(r2, r0 + LE_P));
+}
+#endif
 
 static void
 movi_d(jit_state_t *_jit, int32_t r0, jit_float64_t i0)

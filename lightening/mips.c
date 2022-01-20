@@ -43,7 +43,13 @@ struct abi_arg_iterator {
 	int argc;
 
 	int arg_idx;
-	int stack_size;
+#if !NEW_ABI
+	int gpr_used;
+	int word_idx;
+	int gpr_idx;
+	int fpr_idx;
+#endif
+	jit_word_t stack_size;
 	int stack_padding;
 };
 
@@ -81,7 +87,7 @@ jit_init(jit_state_t *_jit)
 static size_t
 jit_initial_frame_size(void)
 {
-	return 0;
+	return 16;
 }
 
 static void
@@ -93,13 +99,40 @@ reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 	iter->args = args;
 }
 
+static int
+jit_operand_abi_sizeof(enum jit_operand_abi abi)
+{
+	switch (abi) {
+		case JIT_OPERAND_ABI_UINT8:
+		case JIT_OPERAND_ABI_INT8:
+			return 1;
+		case JIT_OPERAND_ABI_UINT16:
+		case JIT_OPERAND_ABI_INT16:
+			return 2;
+		case JIT_OPERAND_ABI_UINT32:
+		case JIT_OPERAND_ABI_INT32:
+			return 4;
+		case JIT_OPERAND_ABI_UINT64:
+		case JIT_OPERAND_ABI_INT64:
+			return 8;
+		case JIT_OPERAND_ABI_POINTER:
+			return CHOOSE_32_64(4, 8);
+		case JIT_OPERAND_ABI_FLOAT:
+			return 4;
+		case JIT_OPERAND_ABI_DOUBLE:
+			return 8;
+		default:
+			abort();
+	}
+}
+
 static void
 next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 {
 	ASSERT(iter->arg_idx < iter->argc);
 	enum jit_operand_abi abi = iter->args[iter->arg_idx].abi;
-	int idx = iter->arg_idx++;
 #if NEW_ABI
+	int idx = iter->arg_idx++;
 	if(is_gpr_arg(abi) && idx < 8) {
 		*arg = jit_operand_gpr(abi, abi_gpr_args[idx]);
 		return;
@@ -110,11 +143,44 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 		return;
 	}
 #else
-	/* TODO: old argument passing is a mess */
+	/* O32 argument passing is a bit of a mess */
+	iter->arg_idx++;
+	if(is_gpr_arg(abi) && iter->word_idx < 8) {
+		*arg = jit_operand_gpr(abi, abi_gpr_args[iter->gpr_idx]);
+		iter->gpr_used = 1;
+		iter->gpr_idx++;
+		iter->word_idx++;
+		return;
+	}
+
+	if(is_fpr_arg(abi) && iter->word_idx < 8 && iter->fpr_idx < 2) {
+		if(abi == JIT_OPERAND_ABI_DOUBLE){
+			iter->gpr_idx += iter->gpr_idx % 2;
+			iter->word_idx += iter->arg_idx % 2;
+		} else {
+			iter->gpr_idx++;
+			iter->word_idx++;
+		}
+
+		if(!iter->gpr_used)
+			*arg = jit_operand_fpr(abi, abi_fpr_args[iter->fpr_idx]);
+		else if(abi == JIT_OPERAND_ABI_FLOAT) {
+			*arg = jit_operand_gpr(abi, abi_gpr_args[iter->gpr_idx]);
+		} else {
+			*arg = jit_operand_gpr_pair(abi,
+					abi_gpr_args[iter->gpr_idx],
+					abi_gpr_args[iter->gpr_idx - 1]);
+		}
+
+		iter->fpr_idx++;
+		return;
+	}
 #endif
 
+	size_t abi_size = jit_operand_abi_sizeof(abi);
+	iter->stack_size = jit_align_up(iter->stack_size, abi_size);
 	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
-	iter->stack_size += sizeof(intmax_t);
+	iter->stack_size += abi_size;
 }
 
 static void
@@ -128,11 +194,7 @@ jit_flush(void *fptr, void *tptr)
 static inline size_t
 jit_stack_alignment(void)
 {
-#if NEW_ABI
 	return 8;
-#else
-	return 4;
-#endif
 }
 
 static void

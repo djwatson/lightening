@@ -341,8 +341,8 @@ Jtype(int32_t op, int32_t addr)
 #define _DSLL32(rd, rt, sa)		Rtype(OP_SPECIAL, 00, rt, rd, sa, OP_DSLL32)
 #define _SRAV(rd, rt, rs)		Rtype(OP_SPECIAL, rs, rt, rd, 00, OP_SRAV)
 #define _SRA(rd, rt, sa)		Rtype(OP_SPECIAL, 00, rt, rd, sa, OP_SRA)
-#define _SRLV(rd, rs, rt)		Rtype(OP_SPECIAL, rs, rt, rd, 00, OP_SRLV)
-#define _SRL(rt, rd, sa)		Rtype(OP_SPECIAL, 00, rt, rd, sa, OP_SRL)
+#define _SRLV(rd, rt, rs)		Rtype(OP_SPECIAL, rs, rt, rd, 00, OP_SRLV)
+#define _SRL(rd, rt, sa)		Rtype(OP_SPECIAL, 00, rt, rd, sa, OP_SRL)
 #define _DSRAV(rd, rt, rs)		Rtype(OP_SPECIAL, rs, rt, rd, 00, OP_DSRAV)
 #define _DSRA(rd, rt, sa)		Rtype(OP_SPECIAL, 00, rt, rd, sa, OP_DSRA)
 #define _DSRA32(rd, rt, sa)		Rtype(OP_SPECIAL, 00, rt, rd, sa, OP_DSRA32)
@@ -412,9 +412,9 @@ Jtype(int32_t op, int32_t addr)
 #define _WMULTU(rs, rt)			_DMULTU(rs, rt)
 #define _WDIV(rs, rt)			_DDIV(rs, rt)
 #define _WDIVU(rs, rt)			_DDIVU(rs, rt)
-#define _WSLLV(rd, rs, rt)		_DSLLV(rd, rs, rt)
-#define _WSRAV(rd, rs, rt)		_DSRAV(rd, rs, rt)
-#define _WSRLV(rd, rs, rt)		_DSRLV(rd, rs, rt)
+#define _WSLLV(rd, rt, rs)		_DSLLV(rd, rt, rs)
+#define _WSRAV(rd, rt, rs)		_DSRAV(rd, rt, rs)
+#define _WSRLV(rd, rt, rs)		_DSRLV(rd, rt, rs)
 #define _WLD(rt, of, bs)		_LD(rt, of, bs)
 #define _WLL(rt, of, bs)		_LLD(rt, of, bs)
 #define _WSC(rt, of, bs)		_SCD(rt, of, bs)
@@ -426,9 +426,9 @@ Jtype(int32_t op, int32_t addr)
 #define _WMULTU(rs, rt)			_MULTU(rs, rt)
 #define _WDIV(rs, rt)			_DIV(rs, rt)
 #define _WDIVU(rs, rt)			_DIVU(rs, rt)
-#define _WSLLV(rd, rs, rt)		_SLLV(rd, rs, rt)
-#define _WSRAV(rd, rs, rt)		_SRAV(rd, rs, rt)
-#define _WSRLV(rd, rs, rt)		_SRLV(rd, rs, rt)
+#define _WSLLV(rd, rt, rs)		_SLLV(rd, rt, rs)
+#define _WSRAV(rd, rt, rs)		_SRAV(rd, rt, rs)
+#define _WSRLV(rd, rt, rs)		_SRLV(rd, rt, rs)
 #define _WLD(rt, of, bs)		_LW(rt, of, bs)
 #define _WLL(rt, of, bs)		_LL(rt, of, bs)
 #define _WSC(rt, of, bs)		_SC(rt, of, bs)
@@ -783,7 +783,7 @@ subci(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 	jit_gpr_t t0 = get_temp_gpr(_jit);
 	if (r0 == r1) {
 		if (can_sign_extend_short_p(i0) && (i0 & 0xffff) != 0x8000)
-			em_wp(_jit, _ADDIU(rn(t0), r1, -i0));
+			em_wp(_jit, _WADDIU(rn(t0), r1, -i0));
 		else {
 			movi(_jit, rn(t0), i0);
 			em_wp(_jit, _WSUBR(rn(t0), r1, rn(t0)));
@@ -793,7 +793,7 @@ subci(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 	}
 	else {
 		if (can_sign_extend_short_p(i0) && (i0 & 0xffff) != 0x8000)
-			em_wp(_jit, _ADDIU(r0, r1, -i0));
+			em_wp(_jit, _WADDIU(r0, r1, -i0));
 		else {
 			movi(_jit, rn(t0), i0);
 			em_wp(_jit, _WSUBR(r0, r1, rn(t0)));
@@ -956,7 +956,7 @@ rshi_u(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 static void
 lshi(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 {
-	em_wp(_jit, _SLLV(r0, r1, i0));
+	em_wp(_jit, _SLL(r0, r1, i0));
 }
 
 	static void
@@ -1149,7 +1149,7 @@ movi(jit_state_t *_jit, int32_t r0, jit_word_t i0)
 	if (i0 == 0)
 		em_wp(_jit, _OR(r0, rn(_ZERO), rn(_ZERO)));
 	else if (can_sign_extend_short_p(i0))
-		em_wp(_jit, _ADDIU(r0, rn(_ZERO), i0));
+		em_wp(_jit, _WADDIU(r0, rn(_ZERO), i0));
 	else if (can_zero_extend_short_p(i0))
 		em_wp(_jit, _ORI(r0, rn(_ZERO), i0));
 	else {

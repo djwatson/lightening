@@ -137,7 +137,10 @@ enum jit_operand_kind
   JIT_OPERAND_KIND_IMM,
   JIT_OPERAND_KIND_GPR,
   JIT_OPERAND_KIND_FPR,
-  JIT_OPERAND_KIND_MEM
+  JIT_OPERAND_KIND_MEM,
+#ifdef JIT_PASS_DOUBLES_IN_GPR_PAIRS
+  JIT_OPERAND_KIND_GPR_PAIR,
+#endif
 };
 
 typedef struct jit_operand
@@ -150,6 +153,9 @@ typedef struct jit_operand
     struct { jit_gpr_t gpr; ptrdiff_t addend; } gpr;
     jit_fpr_t fpr;
     struct { jit_gpr_t base; ptrdiff_t offset; ptrdiff_t addend; } mem;
+#if JIT_PASS_DOUBLES_IN_GPR_PAIRS
+    struct { jit_gpr_t l; jit_gpr_t h; } gpr_pair;
+#endif
   } loc;
 } jit_operand_t;
 
@@ -192,6 +198,15 @@ jit_operand_mem (enum jit_operand_abi abi, jit_gpr_t base, ptrdiff_t offset)
 {
   return jit_operand_mem_with_addend (abi, base, offset, 0);
 }
+
+#ifdef JIT_PASS_DOUBLES_IN_GPR_PAIRS
+static inline jit_operand_t
+jit_operand_gpr_pair(enum jit_operand_abi abi, jit_gpr_t l, jit_gpr_t h)
+{
+	return (jit_operand_t){abi, JIT_OPERAND_KIND_GPR_PAIR,
+		{ .gpr_pair = { l, h } } };
+}
+#endif
 
 static inline jit_operand_t
 jit_operand_addi (jit_operand_t op, ptrdiff_t addend)
