@@ -101,6 +101,7 @@ reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 #endif
 }
 
+#if !NEW_ABI
 static int
 jit_operand_abi_sizeof(enum jit_operand_abi abi)
 {
@@ -127,6 +128,7 @@ jit_operand_abi_sizeof(enum jit_operand_abi abi)
 			abort();
 	}
 }
+#endif
 
 static void
 next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
@@ -145,6 +147,9 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 		*arg = jit_operand_fpr(abi, abi_fpr_args[idx]);
 		return;
 	}
+
+	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
+	iter->stack_size += 8;
 #else
 	/* O32 argument passing is a bit of a mess */
 	iter->arg_idx++;
@@ -173,12 +178,13 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 		iter->gpr_idx += 2;
 		return;
 	}
-#endif
 
 	size_t abi_size = jit_operand_abi_sizeof(abi);
 	iter->stack_size = jit_align_up(iter->stack_size, abi_size);
 	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
 	iter->stack_size += abi_size;
+#endif
+
 }
 
 static void
