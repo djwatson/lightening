@@ -151,7 +151,11 @@ typedef struct jit_operand
   {
     intptr_t imm;
     struct { jit_gpr_t gpr; ptrdiff_t addend; } gpr;
-    jit_fpr_t fpr;
+    struct { jit_fpr_t fpr;
+#if JIT_PASS_FLOATS_IN_GPRS
+	    jit_gpr_t gpr;
+#endif
+    } fpr;
     struct { jit_gpr_t base; ptrdiff_t offset; ptrdiff_t addend; } mem;
 #if JIT_PASS_DOUBLES_IN_GPR_PAIRS
     struct { jit_gpr_t l; jit_gpr_t h; } gpr_pair;
@@ -182,7 +186,7 @@ jit_operand_gpr (enum jit_operand_abi abi, jit_gpr_t gpr)
 static inline jit_operand_t
 jit_operand_fpr (enum jit_operand_abi abi, jit_fpr_t fpr)
 {
-  return (jit_operand_t){ abi, JIT_OPERAND_KIND_FPR, { .fpr = fpr } };
+  return (jit_operand_t){ abi, JIT_OPERAND_KIND_FPR, { .fpr = { fpr } } };
 }
 
 static inline jit_operand_t

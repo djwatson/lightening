@@ -102,7 +102,9 @@
 #define _SQRT_S(fd, fs)		Rtype(OP_COP1, FMT_S, 00, fs, fd, FUN_SQRT)
 #define _SQRT_D(fd, fs)		Rtype(OP_COP1, FMT_D, 00, fs, fd, FUN_SQRT)
 #define _MFC1(rt, fs)		Rtype(OP_COP1, OP_MF, rt, fs, 00, 00)
+#define _MFHC1(rt, fs)		Rtype(OP_COP1, OP_MFH, rt, fs, 00, 00)
 #define _MTC1(rt, fs)		Rtype(OP_COP1, OP_MT, rt, fs, 00, 00)
+#define _MTHC1(rt, fs)		Rtype(OP_COP1, OP_MTH, rt, fs, 00, 00)
 #define _DMFC1(rt, fs)		Rtype(OP_COP1, OP_DMF, rt, fs, 00, 00)
 #define _DMTC1(rt, fs)		Rtype(OP_COP1, OP_DMT, rt, fs, 00, 00)
 #define _CVT_D_S(fd, fs)	Rtype(OP_COP1, FMT_S, 0, fs, fd, FUN_CVT_D)
@@ -199,9 +201,13 @@ static void absr_d(jit_state_t *_jit, int32_t r0, int32_t r1);
 
 static void movr_f(jit_state_t *_jit, int32_t r0, int32_t r1);
 static void movr_d(jit_state_t *_jit, int32_t r0, int32_t r1);
-#if __WORDSIZE == 32
+#if JIT_PASS_DOUBLES_IN_GPR_PAIRS
 static void movr_d_ww(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2);
 static void movr_ww_d(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2);
+#endif
+#if JIT_PASS_FLOATS_IN_GPRS
+static void movr_f_w(jit_state_t *_jit, int32_t r0, int32_t r1);
+static void movr_w_f(jit_state_t *_jit, int32_t r0, int32_t r1);
 #endif
 
 static void retval_f(jit_state_t *_jit, int32_t r0);
@@ -538,18 +544,12 @@ ldr_f(jit_state_t *_jit, int32_t r0, int32_t r1)
 static void
 ldr_d(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-#  if __WORDSIZE == 64 || NEW_ABI
     em_wp(_jit, _LDC1(r0, 0, r1));
-#  else
-    em_wp(_jit, _LWC1(r0 + BE_P, 0, r1));
-    em_wp(_jit, _LWC1(r0 + LE_P, 4, r1));
-#  endif
 }
 
 static void
 ldi_d(jit_state_t *_jit, int32_t r0, jit_word_t i0)
 {
-#  if __WORDSIZE == 64 || NEW_ABI
     if (can_sign_extend_short_p(i0))
 	em_wp(_jit, _LDC1(r0, i0, rn(_ZERO)));
     else {
@@ -558,19 +558,6 @@ ldi_d(jit_state_t *_jit, int32_t r0, jit_word_t i0)
 	em_wp(_jit, _LDC1(r0, 0, rn(t0)));
 	unget_temp_gpr(_jit);
     }
-#  else
-    if (can_sign_extend_short_p(i0) && can_sign_extend_short_p(i0 + 4)) {
-	em_wp(_jit, _LWC1(r0 + BE_P, i0, rn(_ZERO)));
-	em_wp(_jit, _LWC1(r0 + LE_P, i0 + 4, rn(_ZERO)));
-    }
-    else {
-	jit_gpr_t t0 = get_temp_gpr(_jit);
-	movi(_jit, rn(t0), i0);
-	em_wp(_jit, _LWC1(r0 + BE_P, 0, rn(t0)));
-	em_wp(_jit, _LWC1(r0 + LE_P, 4, rn(t0)));
-	unget_temp_gpr(_jit);
-    }
-#  endif
 }
 
 static void
@@ -585,15 +572,8 @@ ldxr_d(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 static void
 ldxi_d(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 {
-#  if __WORDSIZE == 64 || NEW_ABI
     if (can_sign_extend_short_p(i0))
 	em_wp(_jit, _LDC1(r0, i0, r1));
-#  else
-    if (can_sign_extend_short_p(i0) && can_sign_extend_short_p(i0 + 4)) {
-	em_wp(_jit, _LWC1(r0 + BE_P, i0, r1));
-	em_wp(_jit, _LWC1(r0 + LE_P, i0 + 4, r1));
-    }
-#  endif
     else {
 	jit_gpr_t t0 = get_temp_gpr(_jit);
 	addi(_jit, rn(t0), r1, i0);
@@ -605,26 +585,14 @@ ldxi_d(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 static void
 str_d(jit_state_t *_jit,int32_t r0, int32_t r1)
 {
-#  if __WORDSIZE == 64 || NEW_ABI
     em_wp(_jit, _SDC1(r1, 0, r0));
-#  else
-    em_wp(_jit, _SWC1(r1 + BE_P, 0, r0));
-    em_wp(_jit, _SWC1(r1 + LE_P, 4, r0));
-#  endif
 }
 
 static void
 sti_d(jit_state_t *_jit, jit_word_t i0, int32_t r0)
 {
-#  if __WORDSIZE == 64 || NEW_ABI
     if (can_sign_extend_short_p(i0))
 	em_wp(_jit, _SDC1(r0, i0, rn(_ZERO)));
-#  else
-    if (can_sign_extend_short_p(i0) && can_sign_extend_short_p(i0 + 4)) {
-	em_wp(_jit, _SWC1(r0 + BE_P, i0, rn(_ZERO)));
-	em_wp(_jit, _SWC1(r0 + LE_P, i0 + 4, rn(_ZERO)));
-    }
-#  endif
     else {
 	jit_gpr_t t0 = get_temp_gpr(_jit);
 	movi(_jit, rn(t0), i0);
@@ -645,15 +613,8 @@ stxr_d(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 static void
 stxi_d(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 {
-#  if __WORDSIZE == 64 || NEW_ABI
     if (can_sign_extend_short_p(i0))
 	em_wp(_jit, _SDC1(r1, i0, r0));
-#  else
-    if (can_sign_extend_short_p(i0) && can_sign_extend_short_p(i0 + 4)) {
-	em_wp(_jit, _SWC1(r1 + BE_P, i0, r0));
-	em_wp(_jit, _SWC1(r1 + LE_P, i0 + 4, r0));
-    }
-#  endif
     else {
 	jit_gpr_t t0 = get_temp_gpr(_jit);
 	addi(_jit, rn(t0), r0, i0);
@@ -669,21 +630,35 @@ movr_d(jit_state_t *_jit, int32_t r0, int32_t r1)
 	em_wp(_jit, _MOV_D(r0, r1));
 }
 
-#if !NEW_ABI
+#if JIT_PASS_DOUBLES_IN_GPR_PAIRS
 static void
 movr_d_ww(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 {
-	assert(r0 == r1 - 1);
-	em_wp(_jit, _MFC1(r0, r2 + BE_P));
-	em_wp(_jit, _MFC1(r1, r2 + LE_P));
+	assert(r1 == r2 - 1);
+	em_wp(_jit, _MTC1(r1, r0));
+	em_wp(_jit, _MTHC1(r2, r0));
 }
 
 static void
 movr_ww_d(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 {
-	assert(r1 == r2 - 1);
-	em_wp(_jit, _MFC1(r1, r0 + BE_P));
-	em_wp(_jit, _MFC1(r2, r0 + LE_P));
+	assert(r0 == r1 - 1);
+	em_wp(_jit, _MFC1(r0, r2));
+	em_wp(_jit, _MFHC1(r1, r2));
+}
+#endif
+
+#if JIT_PASS_FLOATS_IN_GPRS
+static void
+movr_f_w(jit_state_t *_jit, int32_t r0, int32_t r1)
+{
+	em_wp(_jit, _MFC1(r1, r0));
+}
+
+static void
+movr_w_f(jit_state_t *_jit, int32_t r0, int32_t r1)
+{
+	em_wp(_jit, _MTC1(r1, r0));
 }
 #endif
 
@@ -692,12 +667,27 @@ movi_d(jit_state_t *_jit, int32_t r0, jit_float64_t i0)
 {
     union {
 	int64_t l;
+	struct { int32_t l; int32_t h; } i;
 	jit_float64_t d;
-    } data = {.d = i0};
+    } data = { .d = i0 };
 
     jit_gpr_t t0 = get_temp_gpr(_jit);
-    movi(_jit, rn(t0), data.l); /* FIXME: this only works on mips64 */
+#if __WORDSIZE == 64
+    movi(_jit, rn(t0), data.l);
     em_wp(_jit, _DMTC1(r0, rn(t0)));
+#else
+    if (data.i.l) {
+	    movi(_jit, rn(t0), data.i.l);
+	    em_wp(_jit, _MTC1(rn(t0), r0 + BE_P));
+    } else
+	    em_wp(_jit, _MTC1(rn(_ZERO), r0 + BE_P));
+
+    if (data.i.h) {
+	    movi(_jit, rn(t0), data.i.h);
+	    em_wp(_jit, _MTC1(rn(t0), r0 + LE_P));
+    } else
+    	em_wp(_jit, _MTC1(rn(_ZERO), r0 + LE_P));
+#endif
     unget_temp_gpr(_jit);
 }
 
@@ -728,7 +718,7 @@ static void
 retr_d(jit_state_t *_jit, int32_t r0)
 {
 	if(fn(_F0) != r0)
-		movr_f(_jit, fn(_F0), r0);
+		movr_d(_jit, fn(_F0), r0);
 
 	ret(_jit);
 }

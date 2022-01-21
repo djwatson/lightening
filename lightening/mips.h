@@ -29,6 +29,7 @@
 
 #if !NEW_ABI
 #define JIT_PASS_DOUBLES_IN_GPR_PAIRS 1
+#define JIT_PASS_FLOATS_IN_GPRS 1
 #endif
 
 #define _ZERO	JIT_GPR(0)

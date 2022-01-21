@@ -687,6 +687,10 @@ FOR_EACH_INSTRUCTION(IMPL_INSTRUCTION)
 IMPL_INSTRUCTION(_FGG_, movr_d_ww)
 IMPL_INSTRUCTION(_GGF_, movr_ww_d)
 #endif
+#ifdef JIT_PASS_FLOATS_IN_GPRS
+IMPL_INSTRUCTION(_FG__, movr_f_w)
+IMPL_INSTRUCTION(_GF__, movr_w_f)
+#endif
 #undef IMPL_INSTRUCTION
 
 void
@@ -928,6 +932,13 @@ enum move_kind {
 #if JIT_PASS_DOUBLES_IN_GPR_PAIRS
   MOVE_KIND_ENUM(FPR, GPR_PAIR),
   MOVE_KIND_ENUM(GPR_PAIR, FPR),
+  /* needed to make sure nobody overwrites anything */
+  MOVE_KIND_ENUM(GPR, GPR_PAIR),
+  MOVE_KIND_ENUM(GPR_PAIR, GPR),
+#endif
+#if JIT_PASS_FLOATS_IN_GPRS
+  MOVE_KIND_ENUM(FPR, GPR),
+  MOVE_KIND_ENUM(GPR, FPR),
 #endif
 };
 #undef MOVE_KIND_ENUM
@@ -949,12 +960,12 @@ move_operand(jit_state_t *_jit, jit_operand_t dst, jit_operand_t src)
   case MOVE_FPR_TO_FPR:
     ASSERT(src.abi == dst.abi);
     if (src.abi == JIT_OPERAND_ABI_DOUBLE)
-      return jit_movr_d(_jit, dst.loc.fpr, src.loc.fpr);
+      return jit_movr_d(_jit, dst.loc.fpr.fpr, src.loc.fpr.fpr);
     else
-      return jit_movr_f(_jit, dst.loc.fpr, src.loc.fpr);
+      return jit_movr_f(_jit, dst.loc.fpr.fpr, src.loc.fpr.fpr);
 
   case MOVE_MEM_TO_FPR:
-    return abi_mem_to_fpr(_jit, src.abi, dst.loc.fpr, src.loc.mem.base,
+    return abi_mem_to_fpr(_jit, src.abi, dst.loc.fpr.fpr, src.loc.mem.base,
                           src.loc.mem.offset);
 
   case MOVE_IMM_TO_MEM:
@@ -967,7 +978,7 @@ move_operand(jit_state_t *_jit, jit_operand_t dst, jit_operand_t src)
 
   case MOVE_FPR_TO_MEM:
     return abi_fpr_to_mem(_jit, src.abi, dst.loc.mem.base, dst.loc.mem.offset,
-                          src.loc.fpr);
+                          src.loc.fpr.fpr);
 
   case MOVE_MEM_TO_MEM:
     return abi_mem_to_mem(_jit, src.abi, dst.loc.mem.base, dst.loc.mem.offset,
@@ -976,11 +987,19 @@ move_operand(jit_state_t *_jit, jit_operand_t dst, jit_operand_t src)
 #if JIT_PASS_DOUBLES_IN_GPR_PAIRS
   case MOVE_GPR_PAIR_TO_FPR:
     ASSERT(dst.abi == JIT_OPERAND_ABI_DOUBLE);
-    return jit_movr_d_ww(_jit, dst.loc.fpr, src.loc.gpr_pair.l, src.loc.gpr_pair.h);
+    return jit_movr_d_ww(_jit, dst.loc.fpr.fpr, src.loc.gpr_pair.l, src.loc.gpr_pair.h);
    
   case MOVE_FPR_TO_GPR_PAIR:
     ASSERT(src.abi == JIT_OPERAND_ABI_DOUBLE);
-    return jit_movr_ww_d(_jit, dst.loc.gpr_pair.l, dst.loc.gpr_pair.h, src.loc.fpr);
+    return jit_movr_ww_d(_jit, dst.loc.gpr_pair.l, dst.loc.gpr_pair.h, src.loc.fpr.fpr);
+#endif
+
+#if JIT_PASS_FLOATS_IN_GPRS
+  case MOVE_GPR_TO_FPR:
+    return jit_movr_f_w(_jit, dst.loc.fpr.fpr, src.loc.gpr.gpr);
+
+  case MOVE_FPR_TO_GPR:
+    return jit_movr_w_f(_jit, dst.loc.gpr.gpr, src.loc.fpr.fpr);
 #endif
 
   default:
@@ -1002,7 +1021,7 @@ already_in_place(jit_operand_t src, jit_operand_t dst)
   case MOVE_GPR_TO_GPR:
     return jit_same_gprs (src.loc.gpr.gpr, dst.loc.gpr.gpr);
   case MOVE_FPR_TO_FPR:
-    return jit_same_fprs (src.loc.fpr, dst.loc.fpr);
+    return jit_same_fprs (src.loc.fpr.fpr, dst.loc.fpr.fpr);
   case MOVE_MEM_TO_MEM:
     return jit_same_gprs (src.loc.mem.base, dst.loc.mem.base) &&
       src.loc.mem.offset == dst.loc.mem.offset;
@@ -1019,6 +1038,18 @@ write_would_clobber(jit_operand_t src, jit_operand_t dst)
 
   if (MOVE_KIND(src.kind, dst.kind) == MOVE_MEM_TO_GPR)
     return jit_same_gprs(src.loc.mem.base, dst.loc.gpr.gpr);
+
+#if JIT_PASS_DOUBLES_IN_GPR_PAIRS
+  if (MOVE_KIND(src.kind, dst.kind) == MOVE_GPR_PAIR_TO_GPR)
+	  return jit_same_gprs(src.loc.gpr_pair.h, dst.loc.gpr.gpr)
+		  || jit_same_gprs(src.loc.gpr_pair.l, dst.loc.gpr.gpr);
+#endif
+
+#if JIT_PASS_FLOATS_IN_GPRS
+  if (MOVE_KIND(src.kind, dst.kind) == MOVE_FPR_TO_GPR)
+	  return jit_same_gprs(src.loc.fpr.gpr, dst.loc.gpr.gpr);
+#endif
+
 
   return 0;
 }
@@ -1128,12 +1159,17 @@ jit_move_operands(jit_state_t *_jit, jit_operand_t *dst, jit_operand_t *src,
       case JIT_OPERAND_KIND_GPR:
         src_gprs |= 1ULL << jit_gpr_regno(src[i].loc.gpr.gpr);
         break;
+#if JIT_PASS_DOUBLES_IN_GPR_PAIRS
+      case JIT_OPERAND_KIND_GPR_PAIR: {
+	uint64_t bit0 = 1ULL << jit_gpr_regno(dst[i].loc.gpr_pair.l);
+	uint64_t bit1 = 1ULL << jit_gpr_regno(dst[i].loc.gpr_pair.h);
+	src_gprs |= bit0 | bit1;
+	break;
+	}
+#endif
       case JIT_OPERAND_KIND_FPR:
       case JIT_OPERAND_KIND_IMM:
       case JIT_OPERAND_KIND_MEM:
-#if JIT_PASS_DOUBLES_IN_GPR_PAIRS
-      case JIT_OPERAND_KIND_GPR_PAIR:
-#endif
         break;
       default:
         abort();
@@ -1147,7 +1183,12 @@ jit_move_operands(jit_state_t *_jit, jit_operand_t *dst, jit_operand_t *src,
         break;
       }
       case JIT_OPERAND_KIND_FPR: {
-        uint64_t bit = 1ULL << jit_fpr_regno(dst[i].loc.fpr);
+#if JIT_PASS_FLOATS_IN_GPRS
+	if(src[i].kind == JIT_OPERAND_KIND_GPR) {
+		dst[i].loc.fpr.gpr = src[i].loc.gpr.gpr;
+	}
+#endif
+        uint64_t bit = 1ULL << jit_fpr_regno(dst[i].loc.fpr.fpr);
         ASSERT((dst_fprs & bit) == 0);
         dst_fprs |= bit;
         break;
@@ -1162,7 +1203,7 @@ jit_move_operands(jit_state_t *_jit, jit_operand_t *dst, jit_operand_t *src,
       case JIT_OPERAND_KIND_GPR_PAIR: {
 	uint64_t bit0 = 1ULL << jit_gpr_regno(dst[i].loc.gpr_pair.l);
 	uint64_t bit1 = 1ULL << jit_gpr_regno(dst[i].loc.gpr_pair.h);
-	dst_mem_base_gprs |= bit0 | bit1;
+	dst_gprs |= bit0 | bit1;
 	break;
       }
 #endif
@@ -1344,6 +1385,16 @@ prepare_call_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
       if (jit_same_gprs (args[i].loc.mem.base, JIT_SP))
         args[i].loc.mem.offset += stack_size;
       break;
+
+#if JIT_PASS_FLOATS_IN_GPRS
+    case JIT_OPERAND_KIND_FPR:
+	if (dst[i].kind == JIT_OPERAND_KIND_GPR) {
+		args[i].loc.fpr.gpr = dst[i].loc.gpr.gpr;
+		break;
+	}
+#endif
+	break;
+
     default:
       break;
     }

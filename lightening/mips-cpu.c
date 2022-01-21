@@ -199,10 +199,12 @@ Jtype(int32_t op, int32_t addr)
 #define OP_SWC2			0x3a
 #define OP_SD				0x3f
 #define OP_MF				0x00
+#define OP_MFH				0x03
 #define OP_DMF			0x01
 #define OP_CF				0x02
 #define OP_MFH			0x03
 #define OP_MT				0x04
+#define OP_MTH				0x07
 #define OP_DMT			0x05
 #define OP_CT				0x06
 #define OP_MTH			0x07

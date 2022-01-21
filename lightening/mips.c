@@ -21,9 +21,9 @@
 #  include "mips-fpu.c"
 
 static const jit_gpr_t abi_gpr_args[] = {
-	_A0, _A1, _A2, _A3, _A4,
+	_A0, _A1, _A2, _A3,
 #if NEW_ABI
-	_A5, _A6, _A7,
+	_A4, _A5, _A6, _A7,
 #endif
 };
 
@@ -45,7 +45,6 @@ struct abi_arg_iterator {
 	int arg_idx;
 #if !NEW_ABI
 	int gpr_used;
-	int word_idx;
 	int gpr_idx;
 	int fpr_idx;
 #endif
@@ -87,7 +86,7 @@ jit_init(jit_state_t *_jit)
 static size_t
 jit_initial_frame_size(void)
 {
-	return 16;
+	return 0;
 }
 
 static void
@@ -97,6 +96,9 @@ reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 	memset(iter, 0, sizeof(*iter));
 	iter->argc = argc;
 	iter->args = args;
+#if !NEW_ABI
+	iter->stack_size = 16;
+#endif
 }
 
 static int
@@ -133,6 +135,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 	enum jit_operand_abi abi = iter->args[iter->arg_idx].abi;
 #if NEW_ABI
 	int idx = iter->arg_idx++;
+	/* on new abi the first eight arguments of any type are passed in registers */
 	if(is_gpr_arg(abi) && idx < 8) {
 		*arg = jit_operand_gpr(abi, abi_gpr_args[idx]);
 		return;
@@ -145,22 +148,16 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 #else
 	/* O32 argument passing is a bit of a mess */
 	iter->arg_idx++;
-	if(is_gpr_arg(abi) && iter->word_idx < 8) {
+	if(is_gpr_arg(abi) && iter->gpr_idx < abi_gpr_arg_count) {
 		*arg = jit_operand_gpr(abi, abi_gpr_args[iter->gpr_idx]);
 		iter->gpr_used = 1;
 		iter->gpr_idx++;
-		iter->word_idx++;
 		return;
 	}
 
-	if(is_fpr_arg(abi) && iter->word_idx < 8 && iter->fpr_idx < 2) {
-		if(abi == JIT_OPERAND_ABI_DOUBLE){
-			iter->gpr_idx += iter->gpr_idx % 2;
-			iter->word_idx += iter->arg_idx % 2;
-		} else {
+	if(is_fpr_arg(abi) && iter->gpr_idx <= 2) {
+		if(iter->gpr_idx % 2 != 0)
 			iter->gpr_idx++;
-			iter->word_idx++;
-		}
 
 		if(!iter->gpr_used)
 			*arg = jit_operand_fpr(abi, abi_fpr_args[iter->fpr_idx]);
@@ -168,11 +165,12 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 			*arg = jit_operand_gpr(abi, abi_gpr_args[iter->gpr_idx]);
 		} else {
 			*arg = jit_operand_gpr_pair(abi,
-					abi_gpr_args[iter->gpr_idx],
-					abi_gpr_args[iter->gpr_idx - 1]);
+					abi_gpr_args[iter->gpr_idx + 0],
+					abi_gpr_args[iter->gpr_idx + 1]);
 		}
 
 		iter->fpr_idx++;
+		iter->gpr_idx += 2;
 		return;
 	}
 #endif
