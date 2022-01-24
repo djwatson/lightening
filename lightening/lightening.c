@@ -433,6 +433,9 @@ jit_patch_here(jit_state_t *_jit, jit_reloc_t reloc)
 void
 jit_patch_there(jit_state_t* _jit, jit_reloc_t reloc, jit_pointer_t addr)
 {
+	if(((jit_uword_t)addr) & 0x3)
+		printf("addr: %p", addr);
+
   if (_jit->overflow)
     return;
   union jit_pc loc;
@@ -684,10 +687,14 @@ jit_emit_addr(jit_state_t *j)
 FOR_EACH_INSTRUCTION(IMPL_INSTRUCTION)
 #ifdef JIT_PASS_DOUBLES_IN_GPR_PAIRS
 /* internal use only */
+static void jit_movr_d_ww(jit_state_t *_jit, jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1);
+static void jit_movr_ww_d(jit_state_t *_jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0);
 IMPL_INSTRUCTION(_FGG_, movr_d_ww)
 IMPL_INSTRUCTION(_GGF_, movr_ww_d)
 #endif
 #ifdef JIT_PASS_FLOATS_IN_GPRS
+static void jit_movr_f_w(jit_state_t *_jit, jit_fpr_t f0, jit_gpr_t r0);
+static void jit_movr_w_f(jit_state_t *_jit, jit_gpr_t r0, jit_fpr_t f0);
 IMPL_INSTRUCTION(_FG__, movr_f_w)
 IMPL_INSTRUCTION(_GF__, movr_w_f)
 #endif

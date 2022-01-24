@@ -2051,7 +2051,7 @@ static int32_t
 read_jmp_offset(uint32_t * loc)
 {
   instr_t *i = (instr_t *) loc;
-  return (i->I.i0 + 1) << 2;
+  return i->I.i0 + 1;
 }
 
 static int32_t
@@ -2063,9 +2063,8 @@ read_jcc_offset(uint32_t * loc)
 static void
 patch_jmp_offset(uint32_t * loc, ptrdiff_t offset)
 {
-  assert(!(offset & 0x3));
   instr_t *i = (instr_t *) loc;
-  i->I.i0 = (offset >> 2) - 1;
+  i->I.i0 = offset - 1;
 }
 
 static void
@@ -2106,11 +2105,7 @@ static int
 offset_in_jmp_range(ptrdiff_t offset, int flags)
 {
   (void) flags;
-
-  if (offset & 0x3)
-    return 0;
-  else
-    return simm18_p(offset);
+  return simm16_p(offset);
 }
 
 static int
@@ -2122,10 +2117,9 @@ offset_in_jcc_range(ptrdiff_t offset, int flags)
 static uint32_t
 patch_jump(uint32_t inst, int32_t offset)
 {
-  assert(!(offset & 0x3));
   instr_t i;
   i.w = inst;
-  i.I.i0 = (offset >> 2) - 1;
+  i.I.i0 = offset - 1;
   return i.w;
 }
 
@@ -2134,14 +2128,14 @@ emit_jump(jit_state_t * _jit, uint32_t inst)
 {
   while (1) {
     uint8_t *pc_base = _jit->pc.uc;
-    int32_t off = (uint8_t *) jit_address(_jit) - pc_base;
+    int32_t off = ((uint8_t *)jit_address(_jit)) - pc_base;
     jit_reloc_t w =
 	jit_reloc(_jit, JIT_RELOC_JMP_WITH_VENEER, 0, _jit->pc.uc,
 		  pc_base,
-		  0);
-    uint8_t jump_width = 18;
+		  2);
+    uint8_t jump_width = 16;
     if (add_pending_literal(_jit, w, jump_width - 1)) {
-      em_wp(_jit, patch_jump(inst, off));
+      em_wp(_jit, patch_jump(inst, off >> 2));
       return w;
     }
   }
@@ -2529,18 +2523,19 @@ callr(jit_state_t * _jit, int32_t r0)
    * if (r0 != _T9_REGNO) movr(_T9_REGNO, r0); 
    */
 
-  em_wp(_jit, _JALR(rn(_RA), r0));
+  if (r0 != rn(_T9))
+    movr(_jit, rn(_T9), r0);
+
+  em_wp(_jit, _JALR(rn(_RA), rn(_T9)));
   em_wp(_jit, _NOP(1));
 }
 
 static void
 calli(jit_state_t * _jit, jit_word_t i0)
 {
-  jit_gpr_t t0 = get_temp_gpr(_jit);
-  movi(_jit, rn(t0), i0);
-  em_wp(_jit, _JALR(rn(_RA), rn(t0)));
+  movi(_jit, rn(_T9), i0);
+  em_wp(_jit, _JALR(rn(_RA), rn(_T9)));
   em_wp(_jit, _NOP(1));
-  unget_temp_gpr(_jit);
 }
 
 static void
