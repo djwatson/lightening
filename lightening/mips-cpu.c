@@ -1241,6 +1241,7 @@ typedef struct {
 static void
 patch_immediate_reloc(uint32_t * loc, jit_pointer_t addr)
 {
+  fprintf(stderr, "patch_immediate_reloc: %p\n", addr);
   immediate_t *i = (immediate_t *) loc;
   jit_word_t a = (jit_word_t) addr;
 #if __WORDSIZE == 64
@@ -2631,14 +2632,15 @@ str_atomic(jit_state_t * _jit, int32_t loc, int32_t val)
 static void
 swap_atomic(jit_state_t * _jit, int32_t dst, int32_t loc, int32_t val)
 {
+  fprintf(stderr, "swap_atomic\n");
   jit_gpr_t t0 = get_temp_gpr(_jit);
 
   em_wp(_jit, _SYNC(0x00));
 
   void *retry = jit_address(_jit);
   movr(_jit, rn(t0), val);
-  em_wp(_jit, _WLL(dst, loc, 0));
-  em_wp(_jit, _WSC(rn(t0), loc, 0));
+  em_wp(_jit, _WLL(dst, 0, loc));
+  em_wp(_jit, _WSC(rn(t0), 0, loc));
   jit_patch_there(_jit, bner(_jit, rn(t0), rn(_ZERO)), retry);
 
   em_wp(_jit, _SYNC(0x00));
@@ -2650,6 +2652,7 @@ static void
 cas_atomic(jit_state_t * _jit, int32_t dst, int32_t loc, int32_t expected,
 	   int32_t desired)
 {
+  fprintf(stderr, "cas_atomic\n");
   jit_gpr_t t0 = get_temp_gpr(_jit);
   jit_gpr_t t1 = get_temp_gpr(_jit);
 

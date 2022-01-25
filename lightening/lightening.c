@@ -433,9 +433,6 @@ jit_patch_here(jit_state_t *_jit, jit_reloc_t reloc)
 void
 jit_patch_there(jit_state_t* _jit, jit_reloc_t reloc, jit_pointer_t addr)
 {
-	if(((jit_uword_t)addr) & 0x3)
-		printf("addr: %p", addr);
-
   if (_jit->overflow)
     return;
   union jit_pc loc;
