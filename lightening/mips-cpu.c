@@ -2641,18 +2641,21 @@ swap_atomic(jit_state_t * _jit, int32_t dst, int32_t loc, int32_t val)
 {
   jit_gpr_t t0 = get_temp_gpr(_jit);
   jit_gpr_t t1 = loc == dst ? get_temp_gpr(_jit) : JIT_GPR(loc);
+  jit_gpr_t t2 = val == dst ? get_temp_gpr(_jit) : JIT_GPR(val);
 
   movr(_jit, rn(t1), loc);
+  movr(_jit, rn(t2), val);
   em_wp(_jit, _SYNC(0x00));
 
   void *retry = jit_address(_jit);
-  movr(_jit, rn(t0), val);
+  movr(_jit, rn(t0), rn(t2));
   em_wp(_jit, _WLL(dst, 0, rn(t1)));
   em_wp(_jit, _WSC(rn(t0), 0, rn(t1)));
   jit_patch_there(_jit, beqr(_jit, rn(t0), rn(_ZERO)), retry);
 
   em_wp(_jit, _SYNC(0x00));
 
+  if (val == dst) unget_temp_gpr(_jit);
   if (loc == dst) unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
 }
