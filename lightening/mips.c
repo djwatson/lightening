@@ -236,7 +236,6 @@ bless_function_pointer(void *ptr)
 static void
 patch_jmp_without_veneer(jit_state_t * _jit, uint32_t * loc)
 {
-  fprintf(stderr, "patch_jmp_without_veneer\n");
   patch_jmp_offset(loc, _jit->pc.ui - loc);
 }
 

@@ -1241,7 +1241,6 @@ typedef struct {
 static void
 patch_immediate_reloc(uint32_t * loc, jit_pointer_t addr)
 {
-  fprintf(stderr, "patch_immediate_reloc: %p\n", addr);
   immediate_t *i = (immediate_t *) loc;
   jit_word_t a = (jit_word_t) addr;
 #if __WORDSIZE == 64
@@ -2617,7 +2616,11 @@ static void
 ldr_atomic(jit_state_t * _jit, int32_t dst, int32_t loc)
 {
   em_wp(_jit, _SYNC(0x00));
+#if __WORDSIZE == 64
+  ldr_l(_jit, dst, loc);
+#else
   ldr_i(_jit, dst, loc);
+#endif
   em_wp(_jit, _SYNC(0x00));
 }
 
@@ -2625,26 +2628,32 @@ static void
 str_atomic(jit_state_t * _jit, int32_t loc, int32_t val)
 {
   em_wp(_jit, _SYNC(0x00));
+#if __WORDSIZE == 64
+  str_l(_jit, loc, val);
+#else
   str_i(_jit, loc, val);
+#endif
   em_wp(_jit, _SYNC(0x00));
 }
 
 static void
 swap_atomic(jit_state_t * _jit, int32_t dst, int32_t loc, int32_t val)
 {
-  fprintf(stderr, "swap_atomic\n");
   jit_gpr_t t0 = get_temp_gpr(_jit);
+  jit_gpr_t t1 = loc == dst ? get_temp_gpr(_jit) : JIT_GPR(loc);
 
+  movr(_jit, rn(t1), loc);
   em_wp(_jit, _SYNC(0x00));
 
   void *retry = jit_address(_jit);
   movr(_jit, rn(t0), val);
-  em_wp(_jit, _WLL(dst, 0, loc));
-  em_wp(_jit, _WSC(rn(t0), 0, loc));
-  jit_patch_there(_jit, bner(_jit, rn(t0), rn(_ZERO)), retry);
+  em_wp(_jit, _WLL(dst, 0, rn(t1)));
+  em_wp(_jit, _WSC(rn(t0), 0, rn(t1)));
+  jit_patch_there(_jit, beqr(_jit, rn(t0), rn(_ZERO)), retry);
 
   em_wp(_jit, _SYNC(0x00));
 
+  if (loc == dst) unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
 }
 
@@ -2652,17 +2661,18 @@ static void
 cas_atomic(jit_state_t * _jit, int32_t dst, int32_t loc, int32_t expected,
 	   int32_t desired)
 {
-  fprintf(stderr, "cas_atomic\n");
   jit_gpr_t t0 = get_temp_gpr(_jit);
   jit_gpr_t t1 = get_temp_gpr(_jit);
 
+  em_wp(_jit, _SYNC(0x00));
   void *retry = jit_address(_jit);
 
+  movr(_jit, rn(t1), desired);
   em_wp(_jit, _WLL(rn(t0), 0, loc));
   jit_reloc_t fail = bner(_jit, rn(t0), expected);
-  em_wp(_jit, _WSC(rn(t1), desired, loc));
+  em_wp(_jit, _WSC(rn(t1), 0, loc));
 
-  jit_patch_there(_jit, bner(_jit, rn(t1), rn(_ZERO)), retry);
+  jit_patch_there(_jit, beqr(_jit, rn(t1), rn(_ZERO)), retry);
   jit_patch_here(_jit, fail);
   em_wp(_jit, _SYNC(0x00));
 

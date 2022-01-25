@@ -1,6 +1,6 @@
 #include "test.h"
 
-static uint32_t data[] = { 0x12121212, 0x00000000, 0x34343434 };
+static long data[] = { 0x12121212, 0x00000000, 0x34343434 };
 
 static void
 run_test(jit_state_t *j, uint8_t *arena_base, size_t arena_size)
@@ -19,9 +19,9 @@ run_test(jit_state_t *j, uint8_t *arena_base, size_t arena_size)
   ASSERT(data[0] == 0x12121212);
   ASSERT(data[1] == 0x00);
   ASSERT(data[2] == 0x34343434);
-  f(&data[1], -1);
+  f(&data[1], 0x0f0f0f0f);
   ASSERT(data[0] == 0x12121212);
-  ASSERT(data[1] == 0xffffffff);
+  ASSERT(data[1] == 0x0f0f0f0f);
   ASSERT(data[2] == 0x34343434);
 }
 
