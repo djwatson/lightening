@@ -2093,6 +2093,8 @@ emit_veneer(jit_state_t * _jit, jit_pointer_t target)
   emit_immediate_reloc(_jit, rn(t0), 1);
   patch_veneer(veneer, target);
   emit_u32(_jit, _JR(rn(t0)));
+  /* branch delay slot */
+  emit_u32(_jit, _NOP(1));
   unget_temp_gpr(_jit);
 }
 

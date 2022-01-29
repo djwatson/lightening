@@ -244,6 +244,8 @@ jmp_without_veneer(jit_state_t * _jit)
 {
   uint32_t *loc = _jit->pc.ui;
   emit_u32(_jit, _BEQ(rn(_ZERO), rn(_ZERO), 0));
+  /* branch delay slot */
+  emit_u32(_jit, _NOP(1));
   return loc;
 }
 
