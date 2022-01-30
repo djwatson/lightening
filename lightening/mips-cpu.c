@@ -2063,6 +2063,7 @@ read_jcc_offset(uint32_t * loc)
 static void
 patch_jmp_offset(uint32_t * loc, ptrdiff_t offset)
 {
+  assert(simm16_p(offset - 1));
   instr_t *i = (instr_t *) loc;
   i->I.i0 = offset - 1;
 }
