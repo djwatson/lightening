@@ -2137,7 +2137,14 @@ emit_jump(jit_state_t * _jit, uint32_t inst)
 		  pc_base,
 		  2);
     uint8_t jump_width = 16;
-    if (add_pending_literal(_jit, w, jump_width - 1)) {
+    /* note jump_width - 2, in theory this could be - 1, but due to
+     * some assumptions that a jump can be done in one instruction, this
+     * would cause an overflow later on.
+     *
+     * TODO: fix assumption in lightening.c:1537, max_inst_size 
+     * can be greater than four bytes?
+     */
+    if (add_pending_literal(_jit, w, jump_width - 2)) {
       em_wp(_jit, patch_jump(inst, off >> 2));
       return w;
     }
