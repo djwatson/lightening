@@ -2089,14 +2089,12 @@ patch_veneer(uint32_t * loc, jit_pointer_t addr)
 static void
 emit_veneer(jit_state_t * _jit, jit_pointer_t target)
 {
-  jit_gpr_t t0 = get_temp_gpr(_jit);
   jit_pointer_t veneer = jit_address(_jit);
-  emit_immediate_reloc(_jit, rn(t0), 1);
+  emit_immediate_reloc(_jit, rn(_AT), 1);
   patch_veneer(veneer, target);
-  emit_u32(_jit, _JR(rn(t0)));
+  emit_u32(_jit, _JR(rn(_AT)));
   /* branch delay slot */
   emit_u32(_jit, _NOP(1));
-  unget_temp_gpr(_jit);
 }
 
 static void
