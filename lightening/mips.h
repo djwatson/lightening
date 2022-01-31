@@ -138,7 +138,8 @@
 #define JIT_TMP1	_T6
 #define JIT_TMP2	_T7
 #define JIT_TMP3	_T8
-#define JIT_TMP4	_T9
+/* _T9 is used as a kind of link register, and as such can be overwritten whenever */
+//#define JIT_TMP4	_T9
 
 #define JIT_V0		_S0
 #define JIT_V1		_S1
