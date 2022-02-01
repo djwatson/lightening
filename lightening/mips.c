@@ -202,7 +202,12 @@ jit_flush(void *fptr, void *tptr)
 {
   jit_word_t f = (jit_word_t) fptr & -page_size;
   jit_word_t t = (((jit_word_t) tptr) + page_size - 1) & -page_size;
-  __clear_cache((void *) f, (void *) t);
+  /* libgcc's __clear_cache is apparently in some situations a no-op:
+   * https://gcc.gnu.org/bugzilla/show_bug.cgi?id=90929
+   *
+   * use __builtin_ instead, seems to work on real hardware
+   */
+  __builtin___clear_cache((void *) f, (void *) t);
 }
 
 static inline size_t

@@ -397,7 +397,7 @@ Jtype(int32_t op, int32_t addr)
 #define _BGTZ(rs, of)			Itype(OP_BGTZ, rs, 00, of)
 #define _BNE(rs, rt, of)		Itype(OP_BNE, rs, rt, of)
 #define _JALR(rd, rs)			Rtype(OP_SPECIAL, rs, 00, rd, 00, OP_JALR)
-#define _JR(rs)				Rtype(OP_SPECIAL, rs, 00, 00, 00, OP_JALR)
+#define _JR(rs)				Rtype(OP_SPECIAL, rs, 00, 00, 00, OP_JR)
 #define _J(t)				Jtype(OP_J, t)
 #define _MOVZ(rd, rs, rt)		Rtype(OP_SPECIAL, rs, rt, rd, 00, OP_MOVZ)
 
@@ -2550,7 +2550,7 @@ calli(jit_state_t * _jit, jit_word_t i0)
 static void
 ret(jit_state_t * _jit)
 {
-  em_wp(_jit, _JALR(rn(_ZERO), rn(_RA)));
+  em_wp(_jit, _JR(rn(_RA)));
   em_wp(_jit, _NOP(1));
 }
 
