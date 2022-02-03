@@ -412,6 +412,7 @@ Jtype(int32_t op, int32_t addr)
 #define _LLD(rt, of, bs)		Itype(OP_LLD, bs, rt, of)
 #define _SC(rt, of, bs)			Itype(OP_SC, bs, rt, of)
 #define _SCD(rt, of, bs)		Itype(OP_SCD, bs, rt, of)
+#define _MOVR(rt, rd)			_ORI(rt, rd, rn(_ZERO))
 
 #if __WORDSIZE == 64
 #define _WADDR(rd, rs, rt)		_DADDU(rd, rs, rt)
@@ -676,7 +677,7 @@ static void retval_l(jit_state_t * _jit, int32_t r0);
 #endif
 
 static uint32_t patch_jump(uint32_t inst, int32_t offset);
-static jit_reloc_t emit_jump(jit_state_t * _jit, uint32_t inst);
+static jit_reloc_t emit_jump(jit_state_t * _jit, uint32_t inst, uint32_t delay_slot);
 
 static void callr(jit_state_t * _jit, int32_t r0);
 static void calli(jit_state_t * _jit, jit_word_t i0);
@@ -1855,8 +1856,7 @@ bltr(jit_state_t * _jit, int32_t r0, int32_t r1)
 {
   jit_gpr_t t0 = get_temp_gpr(_jit);
   em_wp(_jit, _SLT(rn(t0), r0, r1));
-  jit_reloc_t w = emit_jump(_jit, _BNE(rn(t0), rn(_ZERO), 0));
-  em_wp(_jit, _NOP(1));
+  jit_reloc_t w = emit_jump(_jit, _BNE(rn(t0), rn(_ZERO), 0), _NOP(1));
   unget_temp_gpr(_jit);
 
   return (w);
@@ -1867,8 +1867,7 @@ bltr_u(jit_state_t * _jit, int32_t r0, int32_t r1)
 {
   jit_gpr_t t0 = get_temp_gpr(_jit);
   em_wp(_jit, _SLTU(rn(t0), r0, r1));
-  jit_reloc_t w = emit_jump(_jit, _BNE(rn(t0), rn(_ZERO), 0));
-  em_wp(_jit, _NOP(1));
+  jit_reloc_t w = emit_jump(_jit, _BNE(rn(t0), rn(_ZERO), 0), _NOP(1));
   unget_temp_gpr(_jit);
 
   return (w);
@@ -1933,8 +1932,7 @@ blei_u(jit_state_t * _jit, int32_t r0, jit_word_t i0)
 static jit_reloc_t
 beqr(jit_state_t * _jit, int32_t r0, int32_t r1)
 {
-  jit_reloc_t w = emit_jump(_jit, _BEQ(r0, r1, 0));
-  em_wp(_jit, _NOP(1));
+  jit_reloc_t w = emit_jump(_jit, _BEQ(r0, r1, 0), _NOP(1));
   return w;
 }
 
@@ -2030,8 +2028,7 @@ bgti_u(jit_state_t * _jit, int32_t r0, jit_word_t i0)
 static jit_reloc_t
 bner(jit_state_t * _jit, int32_t r0, int32_t r1)
 {
-  jit_reloc_t w = emit_jump(_jit, _BNE(r0, r1, 0));
-  em_wp(_jit, _NOP(1));
+  jit_reloc_t w = emit_jump(_jit, _BNE(r0, r1, 0), _NOP(1));
 
   return (w);
 }
@@ -2132,7 +2129,7 @@ patch_jump(uint32_t inst, int32_t offset)
 }
 
 static jit_reloc_t
-emit_jump(jit_state_t * _jit, uint32_t inst)
+emit_jump(jit_state_t * _jit, uint32_t inst, uint32_t delay_slot)
 {
   while (1) {
     uint8_t *pc_base = _jit->pc.uc;
@@ -2150,7 +2147,8 @@ emit_jump(jit_state_t * _jit, uint32_t inst)
      * can be greater than four bytes?
      */
     if (add_pending_literal(_jit, w, jump_width - 2)) {
-      em_wp(_jit, patch_jump(inst, off >> 2));
+      emit_u32(_jit, patch_jump(inst, off >> 2));
+      em_wp(_jit, delay_slot);
       return w;
     }
   }
@@ -2159,7 +2157,7 @@ emit_jump(jit_state_t * _jit, uint32_t inst)
 static void
 jmpr(jit_state_t * _jit, int32_t r0)
 {
-  em_wp(_jit, _JR(r0));
+  emit_u32(_jit, _JR(r0));
   em_wp(_jit, _NOP(1));
 }
 
@@ -2173,7 +2171,7 @@ static void
 jmpi(jit_state_t * _jit, jit_word_t i0)
 {
   if (((_jit->pc.w + sizeof(int32_t)) & 0xf0000000) == (i0 & 0xf0000000)) {
-    em_wp(_jit, _J((i0 & ~0xf0000000) >> 2));
+    emit_u32(_jit, _J((i0 & ~0xf0000000) >> 2));
     em_wp(_jit, _NOP(1));
   } else {
     jit_gpr_t t0 = get_temp_gpr(_jit);
@@ -2202,8 +2200,7 @@ jmp(jit_state_t * _jit)
    * BEQ works as unconditional jump in this case, J and the like aren't
    * PC relative 
    */
-  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(_ZERO), rn(_ZERO), 0));
-  em_wp(_jit, _NOP(1));
+  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(_ZERO), rn(_ZERO), 0), _NOP(1));
 
   return (w);
 }
@@ -2225,11 +2222,7 @@ boaddr(jit_state_t * _jit, int32_t r0, int32_t r1)
   em_wp(_jit, _SLT(rn(t2), rn(t1), r0));
   em_wp(_jit, _SLT(rn(t1), r0, rn(t1)));
   em_wp(_jit, _MOVZ(rn(t1), rn(t2), rn(t0)));
-  jit_reloc_t w = emit_jump(_jit, _BNE(rn(_ZERO), rn(t1), 0));
-  /*
-   * delay slot 
-   */
-  addr(_jit, r0, r0, r1);
+  jit_reloc_t w = emit_jump(_jit, _BNE(rn(_ZERO), rn(t1), 0), _WADDR(r0, r0, r1));
 
   unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
@@ -2258,11 +2251,7 @@ boaddr_u(jit_state_t * _jit, int32_t r0, int32_t r1)
   addr(_jit, rn(t0), r0, r1);
 
   em_wp(_jit, _SLTU(rn(t1), rn(t0), r0));
-  jit_reloc_t w = emit_jump(_jit, _BNE(rn(_ZERO), rn(t1), 0));
-  /*
-   * delay slot 
-   */
-  movr(_jit, r0, rn(t0));
+  jit_reloc_t w = emit_jump(_jit, _BNE(rn(_ZERO), rn(t1), 0), _MOVR(r0, rn(t0)));
 
   unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
@@ -2294,11 +2283,7 @@ bxaddr(jit_state_t * _jit, int32_t r0, int32_t r1)
   addr(_jit, rn(t0), r0, r1);
   em_wp(_jit, _SLTI(rn(t1), r1, 0));
   em_wp(_jit, _SLT(rn(t2), rn(t0), r0));
-  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(t1), rn(t2), 0));
-  /*
-   * delay slot 
-   */
-  movr(_jit, r0, rn(t0));
+  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(t1), rn(t2), 0), _MOVR(r0, rn(t0)));
 
   unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
@@ -2327,11 +2312,7 @@ bxaddr_u(jit_state_t * _jit, int32_t r0, int32_t r1)
   addr(_jit, rn(t0), r0, r1);
 
   em_wp(_jit, _SLTU(rn(t1), rn(t0), r0));
-  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(_ZERO), rn(t1), 0));
-  /*
-   * delay slot 
-   */
-  movr(_jit, r0, rn(t0));
+  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(_ZERO), rn(t1), 0), _MOVR(r0, rn(t0)));
 
   unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
@@ -2364,11 +2345,7 @@ bosubr(jit_state_t * _jit, int32_t r0, int32_t r1)
 
   em_wp(_jit, _SLTI(rn(t1), r1, 0));
   em_wp(_jit, _SLT(rn(t2), r0, rn(t0)));
-  jit_reloc_t w = emit_jump(_jit, _BNE(rn(t1), rn(t2), 0));
-  /*
-   * delay slot 
-   */
-  movr(_jit, r0, rn(t0));
+  jit_reloc_t w = emit_jump(_jit, _BNE(rn(t1), rn(t2), 0), _MOVR(r0, rn(t0)));
 
   unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
@@ -2397,11 +2374,7 @@ bosubr_u(jit_state_t * _jit, int32_t r0, int32_t r1)
   subr(_jit, rn(t0), r0, r1);
 
   em_wp(_jit, _SLTU(rn(t1), r0, rn(t0)));
-  jit_reloc_t w = emit_jump(_jit, _BNE(rn(_ZERO), rn(t1), 0));
-  /*
-   * delay slot 
-   */
-  movr(_jit, r0, rn(t0));
+  jit_reloc_t w = emit_jump(_jit, _BNE(rn(_ZERO), rn(t1), 0), _MOVR(r0, rn(t0)));
 
   unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
@@ -2431,11 +2404,7 @@ bxsubr(jit_state_t * _jit, int32_t r0, int32_t r1)
 
   em_wp(_jit, _SLTI(rn(t1), r1, 0));
   em_wp(_jit, _SLT(rn(t2), r0, rn(t0)));
-  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(t1), rn(t2), 0));
-  /*
-   * delay slot 
-   */
-  movr(_jit, r0, rn(t0));
+  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(t1), rn(t2), 0), _MOVR(r0, rn(t0)));
 
   unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
@@ -2464,11 +2433,7 @@ bxsubr_u(jit_state_t * _jit, int32_t r0, int32_t r1)
   subr(_jit, rn(t0), r0, r1);
 
   em_wp(_jit, _SLTU(rn(t1), r0, rn(t0)));
-  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(_ZERO), rn(t1), 0));
-  /*
-   * delay slot 
-   */
-  movr(_jit, r0, rn(t0));
+  jit_reloc_t w = emit_jump(_jit, _BEQ(rn(_ZERO), rn(t1), 0), _MOVR(r0, rn(t0)));
 
   unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
@@ -2534,14 +2499,10 @@ bmci(jit_state_t * _jit, int32_t r0, jit_word_t i0)
 static void
 callr(jit_state_t * _jit, int32_t r0)
 {
-  /*
-   * if (r0 != _T9_REGNO) movr(_T9_REGNO, r0); 
-   */
-
   if (r0 != rn(_T9))
     movr(_jit, rn(_T9), r0);
 
-  em_wp(_jit, _JALR(rn(_RA), rn(_T9)));
+  emit_u32(_jit, _JALR(rn(_RA), rn(_T9)));
   em_wp(_jit, _NOP(1));
 }
 
@@ -2549,14 +2510,14 @@ static void
 calli(jit_state_t * _jit, jit_word_t i0)
 {
   movi(_jit, rn(_T9), i0);
-  em_wp(_jit, _JALR(rn(_RA), rn(_T9)));
+  emit_u32(_jit, _JALR(rn(_RA), rn(_T9)));
   em_wp(_jit, _NOP(1));
 }
 
 static void
 ret(jit_state_t * _jit)
 {
-  em_wp(_jit, _JR(rn(_RA)));
+  emit_u32(_jit, _JR(rn(_RA)));
   em_wp(_jit, _NOP(1));
 }
 

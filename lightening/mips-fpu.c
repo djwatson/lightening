@@ -737,13 +737,13 @@ retr_d(jit_state_t * _jit, int32_t r0)
 static jit_reloc_t
 bct(jit_state_t * _jit)
 {
-  return emit_jump(_jit, _BC1T(0));
+  return emit_jump(_jit, _BC1T(0), _NOP(1));
 }
 
 static jit_reloc_t
 bcf(jit_state_t * _jit)
 {
-  return emit_jump(_jit, _BC1F(0));
+  return emit_jump(_jit, _BC1F(0), _NOP(1));
 }
 
 static jit_reloc_t
@@ -751,7 +751,6 @@ bltr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_OLT_S(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -760,7 +759,6 @@ bler_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_OLE_S(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -769,7 +767,6 @@ beqr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_EQ_S(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -778,7 +775,6 @@ bger_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_ULT_S(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -787,7 +783,6 @@ bgtr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_ULE_S(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -796,7 +791,6 @@ bner_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_EQ_S(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -805,7 +799,6 @@ bunltr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_ULT_S(r1, r2));
   jit_reloc_t w = bct(_jit);;
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -814,7 +807,6 @@ bunler_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_ULE_S(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -823,7 +815,6 @@ buneqr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_UEQ_S(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -832,7 +823,6 @@ bunger_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_OLT_S(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -841,7 +831,6 @@ bungtr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_OLE_S(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -850,7 +839,6 @@ bltgtr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_UEQ_S(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -859,7 +847,6 @@ bordr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_UN_S(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -868,7 +855,6 @@ bunordr_f(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_UN_S(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -877,7 +863,6 @@ bltr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_OLT_D(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -886,7 +871,6 @@ bler_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_OLE_D(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -895,7 +879,6 @@ beqr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_EQ_D(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -904,7 +887,6 @@ bger_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_ULT_D(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -913,7 +895,6 @@ bgtr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_ULE_D(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -922,7 +903,6 @@ bner_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_EQ_D(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -931,7 +911,6 @@ bunltr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_ULT_D(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -940,7 +919,6 @@ bunler_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_ULE_D(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -949,7 +927,6 @@ buneqr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_UEQ_D(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -958,7 +935,6 @@ bunger_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_OLT_D(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -967,7 +943,6 @@ bungtr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_OLE_D(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -976,7 +951,6 @@ bltgtr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_UEQ_D(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -985,7 +959,6 @@ bordr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_UN_D(r1, r2));
   jit_reloc_t w = bcf(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
 
@@ -994,6 +967,5 @@ bunordr_d(jit_state_t * _jit, int32_t r1, int32_t r2)
 {
   em_wp(_jit, _C_UN_D(r1, r2));
   jit_reloc_t w = bct(_jit);
-  em_wp(_jit, _NOP(1));
   return (w);
 }
