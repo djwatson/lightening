@@ -2091,7 +2091,13 @@ emit_veneer(jit_state_t * _jit, jit_pointer_t target)
 {
   jit_pointer_t veneer = jit_address(_jit);
   emit_immediate_reloc(_jit, rn(_AT), 1);
-  patch_veneer(veneer, target);
+
+  /* in some rare cases we can run into overflow in emit_immediate_reloc,
+   * and since patch_veneer uses patch_immediate_reloc it assumes all
+   * instructions are available */
+  if (!jit_has_overflow(_jit))
+  	patch_veneer(veneer, target);
+
   emit_u32(_jit, _JR(rn(_AT)));
   /* branch delay slot */
   emit_u32(_jit, _NOP(1));
