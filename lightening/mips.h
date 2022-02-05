@@ -196,7 +196,7 @@
 #define JIT_JMP_MAX_SIZE (sizeof(uint32_t) * 2)
 
 #if __WORDSIZE == 64
-#define JIT_LITERAL_MAX_SIZE ((sizeof(uint32_t) * 4) + JIT_JMP_MAX_SIZE)
+#define JIT_LITERAL_MAX_SIZE ((sizeof(uint32_t) * 6) + JIT_JMP_MAX_SIZE)
 #else
 #define JIT_LITERAL_MAX_SIZE ((sizeof(uint32_t) * 2) + JIT_JMP_MAX_SIZE)
 #endif
