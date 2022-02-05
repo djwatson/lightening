@@ -2110,7 +2110,7 @@ static int
 offset_in_jmp_range(ptrdiff_t offset, int flags)
 {
   (void) flags;
-  return simm16_p(offset);
+  return simm16_p(offset - 1);
 }
 
 static int
@@ -2139,14 +2139,8 @@ emit_jump(jit_state_t * _jit, uint32_t inst, uint32_t delay_slot)
 		  pc_base,
 		  2);
     uint8_t jump_width = 16;
-    /* note jump_width - 2, in theory this could be - 1, but due to
-     * some assumptions that a jump can be done in one instruction, this
-     * would cause an overflow later on.
-     *
-     * TODO: fix assumption in lightening.c:1537, max_inst_size 
-     * can be greater than four bytes?
-     */
-    if (add_pending_literal(_jit, w, jump_width - 2)) {
+
+    if (add_pending_literal(_jit, w, jump_width - 1)) {
       emit_u32(_jit, patch_jump(inst, off >> 2));
       em_wp(_jit, delay_slot);
       return w;

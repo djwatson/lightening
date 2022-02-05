@@ -1460,7 +1460,7 @@ literal_pool_byte_size(struct jit_literal_pool *pool)
   // Assume that we might need a uint32_t to branch over a table, and up
   // to 7 bytes for alignment of the table.  Then we assume that no
   // entry will be more than two words.
-  return sizeof(uint32_t) + 7 + pool->size * sizeof(uintptr_t) * 2;
+  return JIT_JMP_MAX_SIZE + 7 + pool->size * JIT_LITERAL_MAX_SIZE;
 }
 
 static void
@@ -1534,7 +1534,7 @@ add_pending_literal(jit_state_t *_jit, jit_reloc_t src,
                     uint8_t max_offset_bits)
 {
   struct jit_literal_pool_entry entry = { src, 0 };
-  uint32_t max_inst_size = sizeof(uint32_t);
+  uint32_t max_inst_size = JIT_INST_MAX_SIZE;
   uint32_t max_offset = (1 << (max_offset_bits + src.rsh)) - max_inst_size;
   return add_literal_pool_entry(_jit, entry, max_offset);
 }

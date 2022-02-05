@@ -79,6 +79,18 @@ jit_same_fprs (jit_fpr_t a, jit_fpr_t b)
 #  include "lightening/s390.h"
 #endif
 
+#ifndef JIT_JMP_MAX_SIZE
+#define JIT_JMP_MAX_SIZE sizeof(uint32_t)
+#endif
+
+#ifndef JIT_LITERAL_MAX_SIZE
+#define JIT_LITERAL_MAX_SIZE (sizeof(uintptr_t) * 2)
+#endif
+
+#ifndef JIT_INST_MAX_SIZE
+#define JIT_INST_MAX_SIZE sizeof(uint32_t)
+#endif
+
 enum jit_reloc_kind
 {
   JIT_RELOC_ABSOLUTE,
