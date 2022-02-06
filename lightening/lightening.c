@@ -670,6 +670,8 @@ jit_emit_addr(jit_state_t *j)
 #define JIT_IMPL__pF__(stem) JIT_IMPL_2(stem, void, pointer, fpr)
 #define JIT_IMPL__pG__(stem) JIT_IMPL_2(stem, void, pointer, gpr)
 #define JIT_IMPL__p___(stem) JIT_IMPL_1(stem, void, pointer)
+#define JIT_IMPL__GGGo(stem) JIT_IMPL_4(stem, void, gpr, gpr, gpr, off)
+#define JIT_IMPL__oGGG(stem) JIT_IMPL_4(stem, void, off, gpr, gpr, gpr)
 
 #define unwrap_gpr(r) jit_gpr_regno(r)
 #define unwrap_fpr(r) jit_fpr_regno(r)
@@ -686,14 +688,26 @@ FOR_EACH_INSTRUCTION(IMPL_INSTRUCTION)
 /* internal use only */
 static void jit_movr_d_ww(jit_state_t *_jit, jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1);
 static void jit_movr_ww_d(jit_state_t *_jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0);
+static void jit_ldxi_ww(jit_state_t *_jit, jit_gpr_t r0, jit_gpr_t r1,
+		jit_gpr_t r2, jit_off_t o0);
+static void jit_stxi_ww(jit_state_t *_jit, jit_off_t o0, jit_gpr_t r0,
+		jit_gpr_t r1, jit_gpr_t r2);
 IMPL_INSTRUCTION(_FGG_, movr_d_ww)
 IMPL_INSTRUCTION(_GGF_, movr_ww_d)
+IMPL_INSTRUCTION(_GGGo, ldxi_ww)
+IMPL_INSTRUCTION(_oGGG, stxi_ww)
 #endif
 #ifdef JIT_PASS_FLOATS_IN_GPRS
 static void jit_movr_f_w(jit_state_t *_jit, jit_fpr_t f0, jit_gpr_t r0);
 static void jit_movr_w_f(jit_state_t *_jit, jit_gpr_t r0, jit_fpr_t f0);
+static void jit_ldxi_w(jit_state_t *_jit, jit_gpr_t r0, jit_gpr_t r1,
+		jit_off_t o0);
+static void jit_stxi_w(jit_state_t *_jit, jit_off_t o0, jit_gpr_t r0,
+		jit_gpr_t r1);
 IMPL_INSTRUCTION(_FG__, movr_f_w)
 IMPL_INSTRUCTION(_GF__, movr_w_f)
+IMPL_INSTRUCTION(_GGo_, ldxi_w)
+IMPL_INSTRUCTION(_oGG_, stxi_w)
 #endif
 #undef IMPL_INSTRUCTION
 
@@ -814,6 +828,11 @@ abi_gpr_to_mem(jit_state_t *_jit, enum jit_operand_abi abi,
     jit_stxi_l(_jit, offset, base, src);
     break;
 #endif
+#if JIT_PASS_FLOATS_IN_GPRS
+  case JIT_OPERAND_ABI_FLOAT:
+    jit_stxi_w(_jit, offset, base, src);
+    break;
+#endif
   default:
     abort();
   }
@@ -867,6 +886,11 @@ abi_mem_to_gpr(jit_state_t *_jit, enum jit_operand_abi abi,
   case JIT_OPERAND_ABI_POINTER:
   case JIT_OPERAND_ABI_INT64:
     jit_ldxi_l(_jit, dst, base, offset);
+    break;
+#endif
+#if JIT_PASS_FLOATS_IN_GPRS
+  case JIT_OPERAND_ABI_FLOAT:
+    jit_ldxi_w(_jit, dst, base, offset);
     break;
 #endif
   default:
@@ -936,6 +960,8 @@ enum move_kind {
 #if JIT_PASS_DOUBLES_IN_GPR_PAIRS
   MOVE_KIND_ENUM(FPR, GPR_PAIR),
   MOVE_KIND_ENUM(GPR_PAIR, FPR),
+  MOVE_KIND_ENUM(MEM, GPR_PAIR),
+  MOVE_KIND_ENUM(GPR_PAIR, MEM),
   /* needed to make sure nobody overwrites anything */
   MOVE_KIND_ENUM(GPR, GPR_PAIR),
   MOVE_KIND_ENUM(GPR_PAIR, GPR),
@@ -996,6 +1022,16 @@ move_operand(jit_state_t *_jit, jit_operand_t dst, jit_operand_t src)
   case MOVE_FPR_TO_GPR_PAIR:
     ASSERT(src.abi == JIT_OPERAND_ABI_DOUBLE);
     return jit_movr_ww_d(_jit, dst.loc.gpr_pair.l, dst.loc.gpr_pair.h, src.loc.fpr.fpr);
+
+  case MOVE_MEM_TO_GPR_PAIR:
+    ASSERT(src.abi == JIT_OPERAND_ABI_DOUBLE);
+    return jit_ldxi_ww(_jit, dst.loc.gpr_pair.l, dst.loc.gpr_pair.h, src.loc.mem.base,
+		    src.loc.mem.offset);
+
+  case MOVE_GPR_PAIR_TO_MEM:
+    ASSERT(dst.abi == JIT_OPERAND_ABI_DOUBLE);
+    return jit_stxi_ww(_jit, dst.loc.mem.offset, dst.loc.mem.base,
+		    src.loc.gpr_pair.l, src.loc.gpr_pair.h);
 #endif
 
 #if JIT_PASS_FLOATS_IN_GPRS
@@ -1047,6 +1083,10 @@ write_would_clobber(jit_operand_t src, jit_operand_t dst)
   if (MOVE_KIND(src.kind, dst.kind) == MOVE_GPR_PAIR_TO_GPR)
 	  return jit_same_gprs(src.loc.gpr_pair.h, dst.loc.gpr.gpr)
 		  || jit_same_gprs(src.loc.gpr_pair.l, dst.loc.gpr.gpr);
+
+  if (MOVE_KIND(src.kind, dst.kind) == MOVE_GPR_PAIR_TO_MEM)
+	  return jit_same_gprs(src.loc.gpr_pair.h, dst.loc.mem.base)
+		  || jit_same_gprs(src.loc.gpr_pair.l, dst.loc.mem.base);
 #endif
 
 #if JIT_PASS_FLOATS_IN_GPRS

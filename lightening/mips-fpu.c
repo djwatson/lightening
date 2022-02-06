@@ -206,10 +206,18 @@ static void movr_d_ww(jit_state_t * _jit, int32_t r0, int32_t r1,
 		      int32_t r2);
 static void movr_ww_d(jit_state_t * _jit, int32_t r0, int32_t r1,
 		      int32_t r2);
+static void stxi_ww(jit_state_t * _jit, jit_word_t o0, int32_t r0,
+		    int32_t r1, int32_t r2);
+static void ldxi_ww(jit_state_t * _jit, int32_t r0, int32_t r1,
+		    int32_t r2, jit_word_t o0);
 #endif
 #if JIT_PASS_FLOATS_IN_GPRS
 static void movr_f_w(jit_state_t * _jit, int32_t r0, int32_t r1);
 static void movr_w_f(jit_state_t * _jit, int32_t r0, int32_t r1);
+static void stxi_w(jit_state_t * _jit, jit_word_t o0, int32_t r0,
+		   int32_t r1);
+static void ldxi_w(jit_state_t * _jit, int32_t r0, int32_t r1,
+		   jit_word_t o0);
 #endif
 
 static void retval_f(jit_state_t * _jit, int32_t r0);
@@ -654,19 +662,57 @@ movr_ww_d(jit_state_t * _jit, int32_t r0, int32_t r1, int32_t r2)
   em_wp(_jit, _MFC1(r0, r2));
   em_wp(_jit, _MFHC1(r1, r2));
 }
+
+static void
+stxi_ww(jit_state_t * _jit, jit_word_t o0, int32_t r0, int32_t r1,
+	int32_t r2)
+{
+  jit_fpr_t t0 = get_temp_fpr(_jit);
+  movr_d_ww(_jit, fn(t0), r1, r2);
+  stxi_d(_jit, o0, r0, fn(t0));
+  unget_temp_fpr(_jit);
+}
+
+static void
+ldxi_ww(jit_state_t * _jit, int32_t r0, int32_t r1, int32_t r2,
+	jit_word_t o0)
+{
+  jit_fpr_t t0 = get_temp_fpr(_jit);
+  ldxi_d(_jit, fn(t0), r2, o0);
+  movr_ww_d(_jit, r0, r1, fn(t0));
+  unget_temp_fpr(_jit);
+}
 #endif
 
 #if JIT_PASS_FLOATS_IN_GPRS
 static void
 movr_f_w(jit_state_t * _jit, int32_t r0, int32_t r1)
 {
-  em_wp(_jit, _MFC1(r1, r0));
+  em_wp(_jit, _MTC1(r0, r1));
 }
 
 static void
 movr_w_f(jit_state_t * _jit, int32_t r0, int32_t r1)
 {
-  em_wp(_jit, _MTC1(r1, r0));
+  em_wp(_jit, _MFC1(r0, r1));
+}
+
+static void
+stxi_w(jit_state_t * _jit, jit_word_t o0, int32_t r0, int32_t r1)
+{
+  jit_fpr_t t0 = get_temp_fpr(_jit);
+  movr_f_w(_jit, fn(t0), r1);
+  stxi_f(_jit, o0, r0, fn(t0));
+  unget_temp_fpr(_jit);
+}
+
+static void
+ldxi_w(jit_state_t * _jit, int32_t r0, int32_t r1, jit_word_t o0)
+{
+  jit_fpr_t t0 = get_temp_fpr(_jit);
+  ldxi_f(_jit, fn(t0), r1, o0);
+  movr_w_f(_jit, r0, fn(t0));
+  unget_temp_fpr(_jit);
 }
 #endif
 

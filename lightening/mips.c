@@ -170,7 +170,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t * arg)
   }
 
   if (is_fpr_arg(abi) && iter->gpr_idx <= 2) {
-    if (iter->gpr_idx % 2 != 0)
+    if (abi == JIT_OPERAND_ABI_DOUBLE && iter->gpr_idx % 2 != 0)
       iter->gpr_idx++;
 
     if (!iter->gpr_used)
@@ -185,7 +185,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t * arg)
     }
 
     iter->fpr_idx++;
-    iter->gpr_idx += 2;
+    iter->gpr_idx += abi == JIT_OPERAND_ABI_DOUBLE ? 2 : 1;
     return;
   }
 
