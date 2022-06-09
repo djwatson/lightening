@@ -884,7 +884,8 @@ rotshr(jit_state_t *_jit, int32_t code,
     unget_temp_gpr(_jit);
   } else if (r2 != _RCX_REGNO) {
     /* Already know that R0 isn't RCX.  */
-    pushr(_jit, _RCX_REGNO);
+    jit_gpr_t tmp = get_temp_gpr(_jit);
+    movr(_jit, jit_gpr_regno(tmp), _RCX_REGNO);
     if (r1 == _RCX_REGNO) {
       if (r0 == r2)
         xchgr(_jit, r0, _RCX_REGNO);
@@ -897,7 +898,8 @@ rotshr(jit_state_t *_jit, int32_t code,
       movr(_jit, r0, r1);
     }
     irotshr(_jit, code, r0);
-    popr(_jit, _RCX_REGNO);
+    movr(_jit, _RCX_REGNO, jit_gpr_regno(tmp));
+    unget_temp_gpr(_jit);
   } else {
     movr(_jit, r0, r1);
     irotshr(_jit, code, r0);
