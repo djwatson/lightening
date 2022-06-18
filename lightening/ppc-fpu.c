@@ -17,7 +17,6 @@
  *	Paulo Cesar Pereira de Andrade
  */
 
-#if PROTO
 #define FA(o,d,a,b,c,x)			_FA(_jit,o,d,a,b,c,x,0)
 #define FA_(o,d,a,b,c,x)		_FA(_jit,o,d,a,b,c,x,1)
 static void _FA(jit_state_t*,int,int,int,int,int,int,int);
@@ -401,9 +400,7 @@ static void _stxr_d(jit_state_t*,int32_t,int32_t,int32_t);
 static void _stxi_d(jit_state_t*,jit_word_t,int32_t,int32_t);
 #  define vaarg_d(r0, r1)		_vaarg_d(_jit, r0, r1)
 static void _vaarg_d(jit_state_t*, int32_t, int32_t);
-#endif
 
-#if CODE
 #  define _u16(v)			((v) & 0xffff)
 static void
 _FA(jit_state_t *_jit, int o, int d, int a, int b, int c, int x, int r)
@@ -1183,12 +1180,32 @@ _stxi_d(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 }
 
 static void
-_vaarg_d(jit_state_t *_jit, int32_t r0, int32_t r1)
+retr_f(jit_state_t *_jit, int32_t r0)
 {
-    /* Load argument. */
-    ldr_d(r0, r1);
+    if (JIT_RET != r0)
+	jit_movr_f(JIT_FRET, r0);
 
-    /* Update va_list. */
-    addi(r1, r1, sizeof(jit_float64_t));
+    ret(_jit);
 }
-#endif
+
+static void
+retr_d(jit_state_t *_jit, int32_t r0)
+{
+    if (JIT_FRET != r0)
+	jit_movr_d(JIT_FRET, r0);
+
+    ret(_jit);
+}
+
+static void
+retval_d(jit_state_t *_jit, int32_t r0)
+{
+    if (r0 != JIT_FRET)
+	jit_movr_d(r0, JIT_FRET);
+}
+
+static void
+retval_f(jit_state_t *_jit, int32_t r0)
+{
+    jit_retval_d(r0);
+}
