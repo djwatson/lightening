@@ -46,6 +46,132 @@ typedef jit_pointer_t jit_va_list_t;
 /* libgcc */
 extern void __clear_cache(void *, void *);
 
+#define em_wp(_jit, x) emit_u32_with_pool(_jit, (x))
+
+// TODO fill in
+typedef union {
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+	struct {
+		uint32_t po:6;
+		uint32_t rt:5;
+		uint32_t ra:5;
+		uint32_t rb:5;
+		uint32_t u0:1;
+		uint32_t xo:9;
+		uint32_t u1:1;
+	} XO;
+
+	struct {
+		uint32_t po:6;
+		uint32_t rx:5;
+		uint32_t ra:5;
+		uint32_t d:16;
+	} D;
+
+	struct {
+		uint32_t po:6;
+		uint32_t f0:5;
+		uint32_t ra:5;
+		uint32_t rb:5;
+		uint32_t xo:10;
+		uint32_t u0:1;
+	} X;
+
+	struct {
+		uint32_t po:6;
+		uint32_t li:24;
+		uint32_t aa:1;
+		uint32_t lk:1;
+	} I;
+
+	struct {
+		uint32_t po:6;
+		uint32_t bo:5;
+		uint32_t bi:5;
+		uint32_t bd:14;
+		uint32_t aa:1;
+		uint32_t lk:1;
+	} B;
+
+	struct {
+		uint32_t po:6;
+		uint32_t bo:5;
+		uint32_t ba:5;
+		uint32_t bb:5;
+		uint32_t xo:10;
+		uint32_t lk:1;
+	} XL;
+
+	struct {
+		uint32_t po:6;
+		uint32_t rs:5;
+		uint32_t fx:10;
+		uint32_t xo:10;
+		uint32_t u0:1;
+	} XFX;
+
+	struct {
+		uint32_t po:6;
+		uint32_t rs:5;
+		uint32_t ra:5;
+		uint32_t rb:5;
+		uint32_t mb:5;
+		uint32_t me:5;
+		uint32_t rc:1;
+	} M;
+
+#if __WORDSIZE == 64
+	struct {
+		uint32_t po:6;
+		uint32_t rs:5;
+		uint32_t ra:5;
+		uint32_t rb:5;
+		uint32_t mx:6;
+		uint32_t xo:4;
+		uint32_t rc:1;
+	} MDS;
+
+	struct {
+		uint32_t po:6;
+		uint32_t rs:5;
+		uint32_t ra:5;
+		uint32_t s0:5;
+		uint32_t mx:6;
+		uint32_t xo:3;
+		uint32_t s1:1;
+		uint32_t rc:1;
+	} MD;
+
+	struct {
+		uint32_t po:6;
+		uint32_t rs:5;
+		uint32_t ra:5;
+		uint32_t s0:5;
+		uint32_t xo:9;
+		uint32_t s1:1;
+		uint32_t rc:1;
+	} XS;
+#endif
+#else
+	struct {} XO;
+	struct {} D;
+	struct {} X;
+	struct {} I;
+	struct {} B;
+	struct {} XL;
+	struct {} C;
+	struct {} CI;
+	struct {} XFX;
+	struct {} M;
+#if __WORDSIZE == 64
+	struct {} MDS;
+	struct {} MD;
+	struct {} XS;
+#endif
+#endif
+	uint32_t w;
+} instr_t;
+
 #include "ppc-cpu.c"
 #include "ppc-fpu.c"
 

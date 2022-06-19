@@ -21,6 +21,7 @@
 #define _jit_ppc_h
 
 #define JIT_NEEDS_LITERAL_POOL 1
+#define JIT_USE_IMMEDIATE_RELOC 1
 
 #if __powerpc__
 #  if _CALL_ELF == 2
