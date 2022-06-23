@@ -44,6 +44,9 @@
 #  define can_zero_extend_short_p(im)	((im) >= 0 && (im) <= 65535)
 #  define can_sign_extend_jump_p(im)	((im) >= -33554432 && (im) <= 33554431)
 
+#define simm14_p(i0) ((i0) <= 0x1fff && (i0) >= -0x3000)
+#define simm24_p(i0) ((i0) <= 0xfffff && (i0) >= -0x100000)
+
 #  define _FXO(o,d,a,b,e,x)		FXO(o,d,a,b,e,x,0)
 #  define _FXO_(o,d,a,b,e,x)		FXO(o,d,a,b,e,x,1)
 #  define _FDs(o,d,a,s)			FDs(o,d,a,s)
@@ -80,7 +83,6 @@ static uint32_t FXFX(int,int,int,int);
 static uint32_t FM(int,int,int,int,int,int,int);
 
 #  if __WORDSIZE == 64
-static uint32_t FMDS(int,int,int,int,int,int,int);
 static uint32_t FMD(int,int,int,int,int,int,int,int);
 static uint32_t FXS(int,int,int,int,int,int,int);
 #  endif
@@ -474,7 +476,9 @@ static void mcrxr(jit_state_t*, int32_t);
 static void nop(jit_state_t*,int32_t);
 static void movr(jit_state_t*,int32_t,int32_t);
 static void movi(jit_state_t*,int32_t,jit_word_t);
-static jit_word_t movi_p(jit_state_t*,int32_t,jit_word_t);
+static jit_reloc_t mov_addr(jit_state_t *,int32_t);
+static jit_reloc_t movi_from_immediate(jit_state_t*,int32_t);
+static void emit_immediate_reloc(jit_state_t*,int32_t,jit_bool_t);
 
 static void bswapr_us(jit_state_t*,int32_t,int32_t);
 static void bswapr_ui(jit_state_t*,int32_t,int32_t);
@@ -591,26 +595,6 @@ static void rshi(jit_state_t*,int32_t,int32_t,jit_word_t);
 static void rshr_u(jit_state_t*,int32_t,int32_t,int32_t);
 static void rshi_u(jit_state_t*,int32_t,int32_t,jit_word_t);
 
-static void ltr(jit_state_t*,int32_t,int32_t,int32_t);
-static void lti(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void ltr_u(jit_state_t*,int32_t,int32_t,int32_t);
-static void lti_u(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void ler(jit_state_t*,int32_t,int32_t,int32_t);
-static void lei(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void ler_u(jit_state_t*,int32_t,int32_t,int32_t);
-static void lei_u(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void eqr(jit_state_t*,int32_t,int32_t,int32_t);
-static void eqi(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void ger(jit_state_t*,int32_t,int32_t,int32_t);
-static void gei(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void ger_u(jit_state_t*,int32_t,int32_t,int32_t);
-static void gei_u(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void gtr(jit_state_t*,int32_t,int32_t,int32_t);
-static void gti(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void gtr_u(jit_state_t*,int32_t,int32_t,int32_t);
-static void gti_u(jit_state_t*,int32_t,int32_t,jit_word_t);
-static void ner(jit_state_t*,int32_t,int32_t,int32_t);
-static void nei(jit_state_t*,int32_t,int32_t,jit_word_t);
 static jit_reloc_t bltr(jit_state_t*,int32_t,int32_t);
 static jit_reloc_t blti(jit_state_t*,int32_t,jit_word_t);
 static jit_reloc_t bltr_u(jit_state_t*,int32_t,int32_t);
@@ -861,21 +845,6 @@ FM(int o, int s, int a, int h, int b, int e, int r)
 
 #  if __WORDSIZE == 64
 static uint32_t
-FMDS(int o, int s, int a, int b, int e, int x, int r)
-{
-    assert(!(o & ~((1 << 6) - 1)));
-    assert(!(s & ~((1 << 5) - 1)));
-    assert(!(a & ~((1 << 5) - 1)));
-    assert(!(b & ~((1 << 5) - 1)));
-    assert(!(e & ~((1 << 6) - 1)));
-    assert(!(x & ~((1 << 4) - 1)));
-    assert(!(r & ~((1 << 1) - 1)));
-    e = (e >> 5) | ((e << 1) & 63);
-    instr_t ins = {.MDS = {o, s, a, b, e, x, r}};
-    return ins.w;
-}
-
-static uint32_t
 FMD(int o, int s, int a, int h, int e, int x, int i, int r)
 {
     assert(!(o & ~((1 << 6) - 1)));
@@ -929,6 +898,79 @@ mcrxr(jit_state_t *_jit, int32_t cr)
     em_wp(_jit, _FX(31, cr << 2, 0, 0, 512));
 }
 #endif
+
+static int32_t
+read_jmp_offset(uint32_t *loc)
+{
+    // FIXME unsigned to signed?
+    instr_t *i = (instr_t *)loc;
+    return i->I.li;
+}
+
+static int32_t
+read_jcc_offset(uint32_t *loc)
+{
+    instr_t *i = (instr_t *)loc;
+    return i->B.bd;
+}
+
+static void
+patch_jmp_offset(uint32_t *loc, ptrdiff_t offset)
+{
+    assert(simm24_p(offset));
+    instr_t *i = (instr_t *)loc;
+    i->I.li = offset;
+}
+
+static void
+patch_veneer_jmp_offset(uint32_t *loc, ptrdiff_t offset)
+{
+    patch_jmp_offset(loc, offset);
+}
+
+static void
+patch_veneer(uint32_t *loc, jit_pointer_t addr)
+{
+    patch_immediate_reloc(loc, addr);
+}
+
+static void
+emit_veneer(jit_state_t *_jit, jit_pointer_t targer)
+{
+    jit_gpr_t reg = get_temp_gpr(_jit);
+    emit_immediate_reloc(_jit, rn(reg), 1);
+    emit_u32(_jit, _MTCTR(rn(reg)));
+    emit_u32(_jit, _BCTR());
+    unget_temp_gpr(_jit);
+}
+
+static void
+patch_veneer_jcc_offset(uint32_t *loc, ptrdiff_t offset)
+{
+    patch_jcc_offset(loc, offset);
+}
+
+static int
+offset_in_jmp_range(ptrdiff_t offset, int flags)
+{
+    (void)flags;
+    return simm24_p(offset);
+}
+
+static int
+offset_in_jcc_range(ptrdiff_t offset, int flags)
+{
+    (void)flags;
+    return simm14_p(offset);
+}
+
+static void
+patch_jcc_offset(uint32_t *loc, ptrdiff_t offset)
+{
+    assert(simm14_p(offset));
+    instr_t *i = (instr_t *)loc;
+    i->B.bd = offset;
+}
 
 static uint32_t
 patch_cc_jump(uint32_t inst, int32_t offset)
@@ -1043,6 +1085,22 @@ typedef struct {
 	instr_t ori;
 #endif
 } immediate_t;
+
+static void
+patch_immediate_reloc(uint32_t *loc, jit_pointer_t addr)
+{
+    immediate_t *i = (immediate_t *)loc;
+    jit_word_t a = (jit_word_t)addr;
+#if __WORDSIZE == 64
+    i->lis0.D.d = a >> 48;
+    i->ori0.D.d = a >> 32;
+    i->lis1.D.d = a >> 16;
+    i->ori1.D.d = a & 0xffff;
+#else
+    i->lis.D.d = a >> 16;
+    i->ori.D.d = a & 0xffff;
+#endif
+}
 
 static void
 emit_immediate_reloc(jit_state_t *_jit, int32_t r0, jit_bool_t in_veneer)
@@ -1616,260 +1674,6 @@ rshi_u(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 	em_wp(_jit, _SRDI(r0, r1, i0));
 #  endif
     }
-}
-
-static void
-ltr(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPW(r1, r2));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_LT));
-}
-
-static void
-lti(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_sign_extend_short_p(i0)) {
-	em_wp(_jit, _CMPWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_LT));
-}
-
-static void
-ltr_u(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPLW(r1, r2));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_LT));
-}
-
-static void
-lti_u(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_zero_extend_short_p(i0)) {
-	em_wp(_jit, _CMPLWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPLW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_LT));
-}
-
-static void
-ler(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPW(r1, r2));
-    em_wp(_jit, _CRNOT(CR_GT, CR_GT));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_GT));
-}
-
-static void
-lei(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_sign_extend_short_p(i0)) {
-	em_wp(_jit, _CMPWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _CRNOT(CR_GT, CR_GT));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_GT));
-}
-
-static void
-ler_u(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPLW(r1, r2));
-    em_wp(_jit, _CRNOT(CR_GT, CR_GT));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_GT));
-}
-
-static void
-lei_u(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_zero_extend_short_p(i0)) {
-	em_wp(_jit, _CMPLWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPLW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _CRNOT(CR_GT, CR_GT));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_GT));
-}
-
-static void
-eqr(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPW(r1, r2));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_EQ));
-}
-
-static void
-eqi(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_sign_extend_short_p(i0)) {
-	em_wp(_jit, _CMPWI(r1, i0));
-    } else if (can_zero_extend_short_p(i0)) {
-	em_wp(_jit, _CMPLWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_EQ));
-}
-
-static void
-ger(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPW(r1, r2));
-    em_wp(_jit, _CRNOT(CR_LT, CR_LT));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_LT));
-}
-
-static void
-gei(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_sign_extend_short_p(i0)) {
-	em_wp(_jit, _CMPWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _CRNOT(CR_LT, CR_LT));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_LT));
-}
-
-static void
-ger_u(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPLW(r1, r2));
-    em_wp(_jit, _CRNOT(CR_LT, CR_LT));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_LT));
-}
-
-static void
-gei_u(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_zero_extend_short_p(i0)) {
-	em_wp(_jit, _CMPLWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPLW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _CRNOT(CR_LT, CR_LT));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_LT));
-}
-
-static void
-gtr(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPW(r1, r2));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_GT));
-}
-
-static void
-gti(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_sign_extend_short_p(i0)) {
-	em_wp(_jit, _CMPWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_GT));
-}
-
-static void
-gtr_u(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPLW(r1, r2));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_GT));
-}
-
-static void
-gti_u(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_zero_extend_short_p(i0)) {
-	em_wp(_jit, _CMPLWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPLW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_GT));
-}
-
-static void
-ner(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
-{
-    em_wp(_jit, _CMPW(r1, r2));
-    em_wp(_jit, _CRNOT(CR_EQ, CR_EQ));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_EQ));
-}
-
-static void
-nei(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
-{
-    if (can_sign_extend_short_p(i0)) {
-	em_wp(_jit, _CMPWI(r1, i0));
-    } else if (can_zero_extend_short_p(i0)) {
-	em_wp(_jit, _CMPLWI(r1, i0));
-    } else {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	em_wp(_jit, _CMPW(r1, rn(reg)));
-	unget_temp_gpr(_jit);
-    }
-
-    em_wp(_jit, _CRNOT(CR_EQ, CR_EQ));
-    em_wp(_jit, _MFCR(r0));
-    em_wp(_jit, _EXTRWI(r0, r0, 1, CR_EQ));
 }
 
 static jit_reloc_t
@@ -3086,26 +2890,26 @@ callr(jit_state_t *_jit, int32_t r0)
 #    if ABI_ELFv2
     movr(_jit, rn(_R12), r0);
 #    else
-    stxi(sizeof(void*) * 5, rn(JIT_SP), rn(_R2));
+    stxi(_jit, sizeof(void*) * 5, rn(JIT_SP), rn(_R2));
     /* FIXME Pretend to not know about r11? */
     if (r0 == rn(_R0)) {
-	movr(rn(_R11), rn(_R0));
-	ldxi(rn(_R2), rn(_R11), sizeof(void*));
-	ldxi(rn(_R11), rn(_R11), sizeof(void*) * 2);
+	movr(_jit, rn(_R11), rn(_R0));
+	ldxi(_jit, rn(_R2), rn(_R11), sizeof(void*));
+	ldxi(_jit, rn(_R11), rn(_R11), sizeof(void*) * 2);
     }
     else {
-	ldxi(rn(_R2), r0, sizeof(void*));
-	ldxi(rn(_R11), r0, sizeof(void*) * 2);
+	ldxi(_jit, rn(_R2), r0, sizeof(void*));
+	ldxi(_jit, rn(_R11), r0, sizeof(void*) * 2);
     }
-    ldr(r0, r0);
+    ldr(_jit, r0, r0);
 #    endif
 #  endif
 
-    MTCTR(r0);
-    BCTRL();
+    em_wp(_jit, _MTCTR(r0));
+    em_wp(_jit, _BCTRL());
 
 #  if __powerpc__ && !ABI_ELFv2
-    ldxi(rn(_R2), rn(_SP), sizeof(void*) * 5);
+    ldxi(_jit, rn(_R2), rn(_SP), sizeof(void*) * 5);
 #  endif
 }
 
@@ -3191,10 +2995,46 @@ retval_ui(jit_state_t *_jit, int32_t r0)
     extr_ui(_jit, r0, rn(JIT_RET));
 }
 
-void
+static void
 retval_l(jit_state_t *_jit, int32_t r0)
 {
     if (r0 != rn(JIT_RET))
 	movr(_jit, r0, rn(JIT_RET));
 }
 #endif
+
+// TODO: atomics
+static void
+ldr_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
+{
+}
+
+static void
+str_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
+{
+}
+
+static void
+swap_atomic(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
+{
+}
+
+static void
+cas_atomic(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2, int32_t r3)
+{
+}
+
+static void
+pop_link_register(jit_state_t *_jit)
+{
+}
+
+static void
+push_link_register(jit_state_t *_jit)
+{
+}
+
+static void
+breakpoint(jit_state_t *_jit)
+{
+}

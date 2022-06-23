@@ -53,6 +53,16 @@ typedef union {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 	struct {
 		uint32_t po:6;
+		uint32_t ft:5;
+		uint32_t fa:5;
+		uint32_t fb:5;
+		uint32_t fc:5;
+		uint32_t xo:5;
+		uint32_t rc:1;
+	} A;
+
+	struct {
+		uint32_t po:6;
 		uint32_t rt:5;
 		uint32_t ra:5;
 		uint32_t rb:5;
@@ -79,7 +89,7 @@ typedef union {
 
 	struct {
 		uint32_t po:6;
-		uint32_t li:24;
+		int32_t li:24;
 		uint32_t aa:1;
 		uint32_t lk:1;
 	} I;
@@ -88,7 +98,7 @@ typedef union {
 		uint32_t po:6;
 		uint32_t bo:5;
 		uint32_t bi:5;
-		uint32_t bd:14;
+		int32_t bd:14;
 		uint32_t aa:1;
 		uint32_t lk:1;
 	} B;
@@ -109,6 +119,16 @@ typedef union {
 		uint32_t xo:10;
 		uint32_t u0:1;
 	} XFX;
+
+	struct {
+		uint32_t po:6;
+		uint32_t l:1;
+		uint32_t fm:8;
+		uint32_t w:1;
+		uint32_t fb:5;
+		uint32_t xo:10;
+		uint32_t rc:1;
+	} XFL;
 
 	struct {
 		uint32_t po:6;
@@ -197,7 +217,7 @@ static size_t page_size;
 /*
  * Implementation
  */
-jit_bool_t
+static jit_bool_t
 jit_get_cpu(void)
 {
 	page_size = sysconf(_SC_PAGE_SIZE);
@@ -205,7 +225,7 @@ jit_get_cpu(void)
 	return 1;
 }
 
-jit_bool_t
+static jit_bool_t
 jit_init(jit_state_t *_jit)
 {
 	return 1;
@@ -218,10 +238,82 @@ jit_initial_frame_size(void)
 	return 0;
 }
 
-void
+static size_t
+jit_stack_alignment()
+{
+	// FIXME check
+	return 8;
+}
+
+static void
 jit_flush(void *fptr, void *tptr)
 {
 #if defined(__GNUC__)
-    __clear_cache((void *)f, (void *)t);
+    __clear_cache((void *)fptr, (void *)tptr);
 #endif
+}
+
+static void
+patch_jmp_without_veneer(jit_state_t *_jit, uint32_t *loc)
+{
+	patch_jmp_offset(loc, _jit->pc.ui - loc);
+}
+
+static uint32_t *
+jmp_without_veneer(jit_state_t *_jit)
+{
+	uint32_t *loc = _jit->pc.ui;
+	emit_u32(_jit, _B(0));
+	return loc;
+}
+
+static void
+patch_load_from_pool_offset(uint32_t *loc, int32_t v)
+{
+	/*
+	 * not used by this backend
+	 */
+	(void)loc;
+	(void)v;
+	abort();
+}
+
+static int32_t
+read_load_from_pool_offset(uint32_t *loc)
+{
+	/*
+	 * not used by this backend
+	 */
+	(void)loc;
+	abort();
+	return 0;
+}
+
+static void
+jit_try_shorten(jit_state_t *_jit, jit_reloc_t reloc, jit_pointer_t addr)
+{
+	(void)_jit;
+	(void)reloc;
+	(void)addr;
+}
+
+static void *
+bless_function_pointer(void *ptr)
+{
+	return ptr;
+}
+
+static void
+reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
+		const jit_operand_t *args)
+{
+	memset(iter, 0, sizeof(*iter));
+	iter->argc = argc;
+	iter->args = args;
+}
+
+static void
+next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
+{
+	// TODO
 }

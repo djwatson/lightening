@@ -63,6 +63,8 @@
 #define _R30 JIT_GPR(30)
 #define _R31 JIT_GPR(31)
 
+#define _FP _R31
+
 #define _F0 JIT_FPR(0)
 #define _F1 JIT_FPR(1)
 #define _F2 JIT_FPR(2)
@@ -160,6 +162,10 @@
 #define JIT_VF16 _F30
 #define JIT_FTMP _F31
 
-#define JIT_PLATFORM_CALLEE_SAVE_GPRS JIT_SP, JIT_FP, JIT_TMP0, JIT_TMP1, JIT_FTMP
+// TODO: Should link register be used?
+#define JIT_LR JIT_TMP0
+
+#define JIT_PLATFORM_CALLEE_SAVE_GPRS JIT_SP, JIT_FP, JIT_TMP0, JIT_TMP1
+#define JIT_PLATFORM_CALLEE_SAVE_FPRS JIT_FTMP
 
 #endif /* _jit_ppc_h */

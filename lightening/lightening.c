@@ -1301,6 +1301,10 @@ static const jit_gpr_t platform_callee_save_gprs[] = {
   JIT_PLATFORM_CALLEE_SAVE_GPRS
 };
 
+static const jit_fpr_t platform_callee_save_fprs[] = {
+  JIT_PLATFORM_CALLEE_SAVE_FPRS
+};
+
 static const jit_gpr_t user_callee_save_gprs[] = {
   JIT_V0, JIT_V1, JIT_V2
 #ifdef JIT_V3
@@ -1355,6 +1359,7 @@ static const jit_fpr_t user_callee_save_fprs[] = {
 
 #define ARRAY_SIZE(X) (sizeof (X)/sizeof ((X)[0]))
 static const size_t pv_count = ARRAY_SIZE(platform_callee_save_gprs);
+static const size_t pf_count = ARRAY_SIZE(platform_callee_save_fprs);
 static const size_t v_count = ARRAY_SIZE(user_callee_save_gprs);
 static const size_t vf_count = ARRAY_SIZE(user_callee_save_fprs);
 
@@ -1377,6 +1382,8 @@ jit_enter_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
     jit_stxi_d(_jit, offset, JIT_SP, user_callee_save_fprs[i]);
   for (size_t i = 0; i < v; i++, offset += __WORDSIZE / 8)
     jit_stxi(_jit, offset, JIT_SP, user_callee_save_gprs[i]);
+  for (size_t i = 0; i < pf_count; i++, offset += __WORDSIZE / 8)
+    jit_stxi_d(_jit, offset, JIT_SP, platform_callee_save_fprs[i]);
   for (size_t i = 0; i < pv_count; i++, offset += __WORDSIZE / 8)
     jit_stxi(_jit, offset, JIT_SP, platform_callee_save_gprs[i]);
   ASSERT(offset <= reserved);
@@ -1396,6 +1403,8 @@ jit_leave_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
     jit_ldxi_d(_jit, user_callee_save_fprs[i], JIT_SP, offset);
   for (size_t i = 0; i < v; i++, offset += __WORDSIZE / 8)
     jit_ldxi(_jit, user_callee_save_gprs[i], JIT_SP, offset);
+  for (size_t i = 0; i < pf_count; i++, offset += __WORDSIZE / 8)
+    jit_ldxi_d(_jit, platform_callee_save_fprs[i], JIT_SP, offset);
   for (size_t i = 0; i < pv_count; i++, offset += __WORDSIZE / 8)
     jit_ldxi(_jit, platform_callee_save_gprs[i], JIT_SP, offset);
   ASSERT(offset <= frame_size);
