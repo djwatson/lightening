@@ -1377,6 +1377,8 @@ jit_enter_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
   size_t reserved =
     jit_align_stack(_jit, (pv_count + pf_count + v) * (__WORDSIZE / 8) + vf * 8);
 
+  jit_prolog(_jit);
+
   size_t offset = 0;
   for (size_t i = 0; i < vf; i++, offset += 8)
     jit_stxi_d(_jit, offset, JIT_SP, user_callee_save_fprs[i]);
@@ -1408,6 +1410,8 @@ jit_leave_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
   for (size_t i = 0; i < pv_count; i++, offset += __WORDSIZE / 8)
     jit_ldxi(_jit, platform_callee_save_gprs[i], JIT_SP, offset);
   ASSERT(offset <= frame_size);
+
+  jit_epilog(_jit);
 
   jit_shrink_stack(_jit, frame_size);
 }

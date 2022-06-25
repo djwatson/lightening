@@ -42,9 +42,8 @@ static const jit_gpr_t abi_gpr_args[] = {
 	_R3, _R4, _R5, _R6, _R7, _R8, _R9, _R10
 };
 
-// FIXME this only works for doubles...
 static const jit_fpr_t abi_fpr_args[] = {
-	_F0, _F1, _F2, _F3, _F4, _F5, _F6, _F6, _F8, _F9
+	_F1, _F2, _F3, _F4, _F5, _F6, _F6, _F8, _F9
 };
 
 static const int abi_gpr_arg_count = sizeof(abi_gpr_args) / sizeof(abi_gpr_args[0]);
@@ -348,8 +347,7 @@ jit_init(jit_state_t *_jit)
 static size_t
 jit_initial_frame_size(void)
 {
-	/* space for LR */
-	return 8;
+	return 32;
 }
 
 static size_t
@@ -423,6 +421,7 @@ reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 	memset(iter, 0, sizeof(*iter));
 	iter->argc = argc;
 	iter->args = args;
+	iter->stack_size = 96;
 }
 
 static int
@@ -471,15 +470,25 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 	}
 
 	if (is_fpr_arg(abi) && iter->fpr_idx < abi_fpr_arg_count) {
-		int inc = (abi == JIT_OPERAND_ABI_DOUBLE) ? 2 : 1;
-		*arg = jit_operand_fpr(abi, abi_fpr_args[iter->fpr_idx]);
-
-		iter->gpr_idx += inc;
-		iter->fpr_idx += inc;
+		*arg = jit_operand_fpr(abi, abi_fpr_args[iter->fpr_idx++]);
+		iter->gpr_idx++;
 		return;
 	}
 
 	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
 	int abi_size = jit_operand_abi_sizeof(abi);
-	iter->stack_size += jit_align_up(abi_size, 4);
+	iter->stack_size += jit_align_up(abi_size, 8);
+}
+
+// Prepare _R0 to be saved to stack. Slightly hacky?
+static void
+jit_prolog(jit_state_t *_jit)
+{
+	em_wp(_jit, _MFLR(rn(_R0)));
+}
+
+static void
+jit_epilog(jit_state_t *_jit)
+{
+	em_wp(_jit, _MTLR(rn(_R0)));
 }

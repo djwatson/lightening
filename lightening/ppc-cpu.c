@@ -825,7 +825,7 @@ FXFX(int o, int d, int x, int f)
     assert(!(d & ~((1 <<  5) - 1)));
     assert(!(x & ~((1 << 10) - 1)));
     assert(!(f & ~((1 << 10) - 1)));
-    instr_t ins = {.XFX = {.po = o, .rs = d, .xo = x, .fx = f, .u0 = 0}};
+    instr_t ins = {.XFX = {.po = o, .rs = d, .fx = x, .xo = f, .u0 = 0}};
     return ins.w;
 }
 
@@ -987,13 +987,32 @@ emit_cc_jump(jit_state_t *_jit, uint32_t inst)
     while (1) {
 	uint8_t *pc_base = _jit->pc.uc;
 	int32_t off = ((uint8_t *)jit_address(_jit)) - pc_base;
-	jit_reloc_t w = jit_reloc(_jit, JIT_RELOC_JMP_WITH_VENEER, 0, _jit->pc.uc,
+	jit_reloc_t w = jit_reloc(_jit, JIT_RELOC_JCC_WITH_VENEER, 0, _jit->pc.uc,
 		pc_base,
 		2);
 	uint8_t jump_width = 16;
 
 	if (add_pending_literal(_jit, w, jump_width - 1)) {
 	    em_wp(_jit, patch_cc_jump(inst, off >> 2));
+	    return w;
+	}
+    }
+}
+
+static jit_reloc_t
+emit_atomic_jump(jit_state_t *_jit, uint32_t inst)
+{
+    while (1) {
+	uint8_t *pc_base = _jit->pc.uc;
+	int32_t off = ((uint8_t *)jit_address(_jit)) - pc_base;
+	jit_reloc_t w = jit_reloc(_jit, JIT_RELOC_JCC_WITH_VENEER, 0, _jit->pc.uc,
+		pc_base,
+		2);
+	uint8_t jump_width = 16;
+
+	// TODO is JCC_WITH_VENEER fine here?
+	if (add_pending_literal(_jit, w, jump_width - 1)) {
+	    emit_u32(_jit, patch_cc_jump(inst, off >> 2));
 	    return w;
 	}
     }
@@ -2790,7 +2809,7 @@ stxi_i(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 static void
 str_l(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _STWX(r1, rn(_R0), r0));
+    em_wp(_jit, _STDX(r1, rn(_R0), r0));
 }
 
 static void
@@ -3007,21 +3026,37 @@ retval_l(jit_state_t *_jit, int32_t r0)
 static void
 ldr_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
+    // TODO long vs int?
+    emit_u32(_jit, _HWSYNC());
+    emit_u32(_jit, _LDX(r0, r1));
+    emit_u32(_jit, _CMPW(r0, r0));
+    jit_reloc_t w = emit_cc_jump(_jit, _BNE(0));
+    jit_patch_here(w);
+    emit_u32(_jit, _ISYNC());
 }
 
 static void
 str_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
+    emit_u32(_jit, _HWSYNC());
+    emit_u32(_jit, _STW(r0, r1));
 }
 
 static void
 swap_atomic(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 {
+    emit_u32(_jit, _HWSYNC());
+    emit_u32(_jit, _LWARX(r1, r2));
+    emit_u32(_jit, _STWCX(r0, r2));
+    jit_reloc_t w = emit_atomic_jump(_jit, _BNE(0));
+    jit_patch_here(w);
+    emit_u32(_jit, _ISYNC());
 }
 
 static void
 cas_atomic(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2, int32_t r3)
 {
+    // TODO too tired right now :D
 }
 
 static void

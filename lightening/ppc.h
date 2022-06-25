@@ -149,7 +149,7 @@
 // TODO: Should link register be used?
 #define JIT_LR JIT_TMP0
 
-#define JIT_PLATFORM_CALLEE_SAVE_GPRS JIT_SP, JIT_FP, JIT_TMP0, JIT_TMP1
+#define JIT_PLATFORM_CALLEE_SAVE_GPRS _R0, JIT_SP, JIT_FP, JIT_TMP0, JIT_TMP1
 #define JIT_PLATFORM_CALLEE_SAVE_FPRS JIT_FTMP
 
 #endif /* _jit_ppc_h */

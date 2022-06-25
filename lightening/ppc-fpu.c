@@ -636,7 +636,7 @@ bunordr_d(jit_state_t *_jit, int32_t r0, int32_t r1)
 static jit_reloc_t
 bunordr_f(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    return bunordr_f(_jit, r0, r1);
+    return bunordr_d(_jit, r0, r1);
 }
 
 static void
