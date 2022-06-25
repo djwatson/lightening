@@ -1375,7 +1375,7 @@ jit_enter_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
   _jit->frame_size = jit_initial_frame_size();
 
   size_t reserved =
-    jit_align_stack(_jit, (pv_count + v) * (__WORDSIZE / 8) + vf * 8);
+    jit_align_stack(_jit, (pv_count + pf_count + v) * (__WORDSIZE / 8) + vf * 8);
 
   size_t offset = 0;
   for (size_t i = 0; i < vf; i++, offset += 8)

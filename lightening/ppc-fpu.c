@@ -224,7 +224,7 @@ FA(int o, int d, int a, int b, int c, int x, int r)
     assert(!(c & ~((1 << 5) - 1)));
     assert(!(x & ~((1 << 5) - 1)));
     assert(!(r & ~((1 << 1) - 1)));
-    instr_t i = {.A = {o, d, a, b, c, x, r}};
+    instr_t i = {.A = {.po = o, .ft = d, .fa = a, .fb = b, .fc = c, .xo = x, .rc = r}};
     return i.w;
 }
 
@@ -236,7 +236,7 @@ FXFL(int o, int m, int b, int x, int r)
     assert(!(b & ~((1 <<  5) - 1)));
     assert(!(x & ~((1 << 10) - 1)));
     assert(!(r & ~((1 <<  1) - 1)));
-    instr_t i = {.XFL = {o, m, b, x, r}};
+    instr_t i = {.XFL = {.po = o, .l = 0, .fm = m, .w = 0, .fb = b, .xo = x, .rc = r}};
     return i.w;
 }
 

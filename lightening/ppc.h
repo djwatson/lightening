@@ -129,38 +129,22 @@
 #define JIT_SP _R1
 
 #define JIT_F0 _F0
-#define JIT_F1 _F1
-#define JIT_F2 _F2
-#define JIT_F3 _F3
-#define JIT_F4 _F4
-#define JIT_F5 _F5
-#define JIT_F6 _F6
-#define JIT_F7 _F7
-#define JIT_F8 _F8
-#define JIT_F9 _F9
-#define JIT_F10 _F10
-#define JIT_F11 _F11
-#define JIT_F12 _F12
-#define JIT_F13 _F13
+#define JIT_F1 _F2
+#define JIT_F2 _F4
+#define JIT_F3 _F6
+#define JIT_F4 _F8
+#define JIT_F5 _F10
+#define JIT_F6 _F12
 
 #define JIT_VF0 _F14
-#define JIT_VF1 _F15
-#define JIT_VF2 _F16
-#define JIT_VF3 _F17
-#define JIT_VF4 _F18
-#define JIT_VF5 _F19
-#define JIT_VF6 _F20
-#define JIT_VF7 _F21
-#define JIT_VF8 _F22
-#define JIT_VF9 _F23
-#define JIT_VF10 _F24
-#define JIT_VF11 _F25
-#define JIT_VF12 _F26
-#define JIT_VF13 _F27
-#define JIT_VF14 _F28
-#define JIT_VF15 _F29
-#define JIT_VF16 _F30
-#define JIT_FTMP _F31
+#define JIT_VF1 _F16
+#define JIT_VF2 _F18
+#define JIT_VF3 _F20
+#define JIT_VF4 _F22
+#define JIT_VF5 _F24
+#define JIT_VF6 _F26
+#define JIT_VF7 _F28
+#define JIT_FTMP _F30
 
 // TODO: Should link register be used?
 #define JIT_LR JIT_TMP0

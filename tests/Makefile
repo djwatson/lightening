@@ -1,5 +1,5 @@
 TESTS ?= $(sort $(basename $(wildcard *.c)))
-TARGETS ?= native ia32 aarch64 armv7 mips64el mipsel ppc ppc64 ppc64el
+TARGETS ?= native ia32 aarch64 armv7 mips64el mipsel ppc ppc64 ppc64le
 
 # Suitable values of cross-compiler variables for Debian:
 #

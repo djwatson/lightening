@@ -38,6 +38,18 @@
 #  define F_DISP			(__WORDSIZE >> 3) - sizeof(jit_float32_t)
 #endif
 
+static const jit_gpr_t abi_gpr_args[] = {
+	_R3, _R4, _R5, _R6, _R7, _R8, _R9, _R10
+};
+
+// FIXME this only works for doubles...
+static const jit_fpr_t abi_fpr_args[] = {
+	_F0, _F1, _F2, _F3, _F4, _F5, _F6, _F6, _F8, _F9
+};
+
+static const int abi_gpr_arg_count = sizeof(abi_gpr_args) / sizeof(abi_gpr_args[0]);
+static const int abi_fpr_arg_count = sizeof(abi_fpr_args) / sizeof(abi_fpr_args[0]);
+
 /*
  * Types
  */
@@ -50,7 +62,7 @@ extern void __clear_cache(void *, void *);
 
 // TODO fill in
 typedef union {
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if __BYTE_ORDER == __BIG_ENDIAN
 	struct {
 		uint32_t po:6;
 		uint32_t ft:5;
@@ -173,20 +185,126 @@ typedef union {
 	} XS;
 #endif
 #else
-	struct {} XO;
-	struct {} D;
-	struct {} X;
-	struct {} I;
-	struct {} B;
-	struct {} XL;
-	struct {} C;
-	struct {} CI;
-	struct {} XFX;
-	struct {} M;
+	struct {
+		uint32_t rc:1;
+		uint32_t xo:5;
+		uint32_t fc:5;
+		uint32_t fb:5;
+		uint32_t fa:5;
+		uint32_t ft:5;
+		uint32_t po:6;
+	} A;
+
+	struct {
+		uint32_t u1:1;
+		uint32_t xo:9;
+		uint32_t u0:1;
+		uint32_t rb:5;
+		uint32_t ra:5;
+		uint32_t rt:5;
+		uint32_t po:6;
+	} XO;
+
+	struct {
+		uint32_t d:16;
+		uint32_t ra:5;
+		uint32_t rx:5;
+		uint32_t po:6;
+	} D;
+
+	struct {
+		uint32_t u0:1;
+		uint32_t xo:10;
+		uint32_t rb:5;
+		uint32_t ra:5;
+		uint32_t f0:5;
+		uint32_t po:6;
+	} X;
+
+	struct {
+		uint32_t lk:1;
+		uint32_t aa:1;
+		int32_t li:24;
+		uint32_t po:6;
+	} I;
+
+	struct {
+		uint32_t lk:1;
+		uint32_t aa:1;
+		int32_t bd:14;
+		uint32_t bi:5;
+		uint32_t bo:5;
+		uint32_t po:6;
+	} B;
+
+	struct {
+		uint32_t lk:1;
+		uint32_t xo:10;
+		uint32_t bb:5;
+		uint32_t ba:5;
+		uint32_t bo:5;
+		uint32_t po:6;
+	} XL;
+
+	struct {
+		uint32_t u0:1;
+		uint32_t xo:10;
+		uint32_t fx:10;
+		uint32_t rs:5;
+		uint32_t po:6;
+	} XFX;
+
+	struct {
+		uint32_t rc:1;
+		uint32_t xo:10;
+		uint32_t fb:5;
+		uint32_t w:1;
+		uint32_t fm:8;
+		uint32_t l:1;
+		uint32_t po:6;
+	} XFL;
+
+	struct {
+		uint32_t rc:1;
+		uint32_t me:5;
+		uint32_t mb:5;
+		uint32_t rb:5;
+		uint32_t ra:5;
+		uint32_t rs:5;
+		uint32_t po:6;
+	} M;
+
 #if __WORDSIZE == 64
-	struct {} MDS;
-	struct {} MD;
-	struct {} XS;
+	struct {
+		uint32_t rc:1;
+		uint32_t xo:4;
+		uint32_t mx:6;
+		uint32_t rb:5;
+		uint32_t ra:5;
+		uint32_t rs:5;
+		uint32_t po:6;
+	} MDS;
+
+	struct {
+		uint32_t rc:1;
+		uint32_t s1:1;
+		uint32_t xo:3;
+		uint32_t mx:6;
+		uint32_t s0:5;
+		uint32_t ra:5;
+		uint32_t rs:5;
+		uint32_t po:6;
+	} MD;
+
+	struct {
+		uint32_t rc:1;
+		uint32_t s1:1;
+		uint32_t xo:9;
+		uint32_t s0:5;
+		uint32_t ra:5;
+		uint32_t rs:5;
+		uint32_t po:6;
+	} XS;
 #endif
 #endif
 	uint32_t w;
@@ -195,11 +313,6 @@ typedef union {
 #include "ppc-cpu.c"
 #include "ppc-fpu.c"
 
-static const jit_gpr_t abi_gpr_args[] = {
-	_R3, _R4, _R5, _R6, _R7, _R8, _R9, _R10
-};
-static const size_t abi_gpr_arg_count = sizeof(abi_gpr_args) / sizeof(abi_gpr_args[0]);
-
 struct abi_arg_iterator
 {
   const jit_operand_t *args;
@@ -207,7 +320,8 @@ struct abi_arg_iterator
 
   size_t arg_idx;
   size_t gpr_idx;
-  uint32_t vfp_used_registers;
+  size_t fpr_idx;
+
   size_t stack_size;
   size_t stack_padding;
 };
@@ -234,15 +348,14 @@ jit_init(jit_state_t *_jit)
 static size_t
 jit_initial_frame_size(void)
 {
-	// FIXME check
-	return 0;
+	/* space for LR */
+	return 8;
 }
 
 static size_t
 jit_stack_alignment()
 {
-	// FIXME check
-	return 8;
+	return 16;
 }
 
 static void
@@ -312,8 +425,61 @@ reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 	iter->args = args;
 }
 
+static int
+jit_operand_abi_sizeof(enum jit_operand_abi abi)
+{
+	switch (abi) {
+		case JIT_OPERAND_ABI_UINT8:
+		case JIT_OPERAND_ABI_INT8:
+			return 1;
+
+		case JIT_OPERAND_ABI_UINT16:
+		case JIT_OPERAND_ABI_INT16:
+			return 2;
+
+		case JIT_OPERAND_ABI_UINT32:
+		case JIT_OPERAND_ABI_INT32:
+			return 4;
+
+		case JIT_OPERAND_ABI_UINT64:
+		case JIT_OPERAND_ABI_INT64:
+			return 8;
+
+		case JIT_OPERAND_ABI_POINTER:
+			return CHOOSE_32_64(4, 8);
+
+		case JIT_OPERAND_ABI_FLOAT:
+			return 4;
+
+		case JIT_OPERAND_ABI_DOUBLE:
+			return 8;
+
+		default:
+			abort();
+	}
+}
+
 static void
 next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 {
-	// TODO
+	ASSERT(iter->arg_idx < iter->argc);
+	enum jit_operand_abi abi = iter->args[iter->arg_idx].abi;
+	iter->arg_idx++;
+	if (is_gpr_arg(abi) && iter->gpr_idx < abi_gpr_arg_count) {
+		*arg = jit_operand_gpr(abi, abi_gpr_args[iter->gpr_idx++]);
+		return;
+	}
+
+	if (is_fpr_arg(abi) && iter->fpr_idx < abi_fpr_arg_count) {
+		int inc = (abi == JIT_OPERAND_ABI_DOUBLE) ? 2 : 1;
+		*arg = jit_operand_fpr(abi, abi_fpr_args[iter->fpr_idx]);
+
+		iter->gpr_idx += inc;
+		iter->fpr_idx += inc;
+		return;
+	}
+
+	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
+	int abi_size = jit_operand_abi_sizeof(abi);
+	iter->stack_size += jit_align_up(abi_size, 4);
 }

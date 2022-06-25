@@ -713,7 +713,7 @@ FXO(int o, int d, int a, int b, int e, int x, int r)
     assert(!(e & ~((1 << 1) - 1)));
     assert(!(x & ~((1 << 9) - 1)));
     assert(!(r & ~((1 << 1) - 1)));
-    instr_t ins = {.XO = {o, d, a, b, e, x, r}};
+    instr_t ins = {.XO = {.po = o, .rt = d, .ra = a, .rb = b, .u0 = e, .xo = x, .u1 = r}};
     return ins.w;
 }
 
@@ -724,7 +724,7 @@ FDs(int o, int d, int a, int s)
     assert(!(d & ~((1 << 5) - 1)));
     assert(!(a & ~((1 << 5) - 1)));
     assert(can_sign_extend_short_p(s));
-    instr_t ins = {.D = {o, d, a, _u16(s)}};
+    instr_t ins = {.D = {.po = o, .rx = d, .ra = a, .d = _u16(s)}};
     return ins.w;
 }
 
@@ -735,7 +735,7 @@ FDu(int o, int d, int a, int s)
     assert(!(d & ~((1 << 5) - 1)));
     assert(!(a & ~((1 << 5) - 1)));
     assert(can_zero_extend_short_p(s));
-    instr_t ins = {.D = {o, d, a, _u16(s)}};
+    instr_t ins = {.D = {.po = o, .rx = d, .ra = a, .d = _u16(s)}};
     return ins.w;
 }
 
@@ -748,7 +748,7 @@ FX(int o, int s, int a, int b, int x, int r)
     assert(!(b & ~((1 <<  5) - 1)));
     assert(!(x & ~((1 << 10) - 1)));
     assert(!(r & ~((1 <<  1) - 1)));
-    instr_t ins = {.X = {o, s, a, b, x, r}};
+    instr_t ins = {.X = {.po = o, .f0 = s, .ra = a, .rb = b, .xo = x, .u0 = r}};
     return ins.w;
 }
 
@@ -759,7 +759,7 @@ FI(int o, int t, int a, int k)
     assert(!(t & 3) && can_sign_extend_jump_p(t));
     assert(!(a & ~(( 1 <<  1) - 1)));
     assert(!(k & ~(( 1 <<  1) - 1)));
-    instr_t ins = {.I = {o, _u26(t), a, k}};
+    instr_t ins = {.I = {.po = o, .li = _u26(t), .aa = a, .lk = k}};
     return ins.w;
 }
 
@@ -772,7 +772,7 @@ FB(int o, int bo, int bi, int t, int a, int k)
     assert(!(t & 3) && can_sign_extend_short_p(t));
     assert(!(a & ~(( 1 <<  1) - 1)));
     assert(!(k & ~(( 1 <<  1) - 1)));
-    instr_t ins = {.B = {o, bo, bi, _u16(t), a, k}};
+    instr_t ins = {.B = {.po = o, .bo = bo, .bi = bi, .bd = _u16(t), .aa = a, .lk = k}};
     return ins.w;
 }
 
@@ -784,7 +784,7 @@ FXL(int o, int bo, int bi, int x, int k)
     assert(!(bi & ~((1 <<  5) - 1)));
     assert(!(x & ~(( 1 << 10) - 1)));
     assert(!(k & ~(( 1 <<  1) - 1)));
-    instr_t ins = {.XL = {o, bo, bi, x, k}};
+    instr_t ins = {.XL = {.po = o, .bo = bo, .ba = bi, .bb = 0, .xo = x, .lk = k}};
     return ins.w;
 }
 
@@ -798,7 +798,7 @@ FC(int o, int d, int l, int a, int b, int x)
     assert(!(a & ~((1 <<  5) - 1)));
     assert(!(b & ~((1 <<  5) - 1)));
     assert(!(x & ~((1 << 10) - 1)));
-    instr_t ins = {.X = {o, d << 3 | l, a, b, x}};
+    instr_t ins = {.X = {.po = o, .f0 = d << 3 | l, .ra = a, .rb = b, .xo = x, .u0 = 0}};
     return ins.w;
 }
 
@@ -814,7 +814,7 @@ FCI(int o, int d, int l, int a, int s)
 #if DEBUG
     else		abort();
 #endif
-    instr_t ins = {.X = {o, d << 3 | l, a, _u16(s)}};
+    instr_t ins = {.X = {.po = o, .f0 = d << 3 | l, .ra = a, .rb = 0, .xo = _u16(s), .u0 = 0}};
     return ins.w;
 }
 
@@ -825,7 +825,7 @@ FXFX(int o, int d, int x, int f)
     assert(!(d & ~((1 <<  5) - 1)));
     assert(!(x & ~((1 << 10) - 1)));
     assert(!(f & ~((1 << 10) - 1)));
-    instr_t ins = {.XFX = {o, d, x, f}};
+    instr_t ins = {.XFX = {.po = o, .rs = d, .xo = x, .fx = f, .u0 = 0}};
     return ins.w;
 }
 
@@ -839,7 +839,7 @@ FM(int o, int s, int a, int h, int b, int e, int r)
     assert(!(b & ~((1 << 5) - 1)));
     assert(!(e & ~((1 << 5) - 1)));
     assert(!(r & ~((1 << 1) - 1)));
-    instr_t ins = {.M = {o, s, a, h, b, e, r}};
+    instr_t ins = {.M = {.po = o, .rs = s, .ra = a, .rb = h, .mb = b, .me = e, .rc = r}};
     return ins.w;
 }
 
@@ -856,7 +856,7 @@ FMD(int o, int s, int a, int h, int e, int x, int i, int r)
     assert(!(i & ~((1 << 1) - 1)));
     assert(!(r & ~((1 << 1) - 1)));
     e = (e >> 5) | ((e << 1) & 63);
-    instr_t ins = {.MD = {o, s, a, h, e, x, i, r}};
+    instr_t ins = {.MD = {.po = o, .rs = s, .ra = a, .s0 = h, .mx = e, .xo = x, .s1 = i, .rc = r}};
     return ins.w;
 }
 
@@ -870,7 +870,7 @@ FXS(int o, int s, int a, int h, int x, int i, int r)
     assert(!(x & ~((1 << 9) - 1)));
     assert(!(i & ~((1 << 1) - 1)));
     assert(!(r & ~((1 << 1) - 1)));
-    instr_t ins = {.XS = {o, s, a, h, x, i, r}};
+    instr_t ins = {.XS = {.po = o, .rs = s, .ra = a, .s0 = h, .xo = x, .s1 = i, .rc = r}};
     return ins.w;
 }
 #endif
