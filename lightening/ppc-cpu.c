@@ -425,6 +425,7 @@ static void mcrxr(jit_state_t*, int32_t);
 #  define _STWX(s,a,b)			_FX(31,s,a,b,151)
 #  define _STD(s,a,d)			_FDs(62,s,a,d)
 #  define _STDX(s,a,b)			_FX(31,s,a,b,149)
+#  define _STDCX(s,a,b)                 _FX_(31,s,a,b,214)
 #  define _STDU(s,a,d)			_FDs(62,s,a,d|1)
 #  define _STDUX(s,a,b)			_FX(31,s,a,b,181)
 #  define _SUBF(d,a,b)			_FXO(31,d,a,b,0,40)
@@ -458,7 +459,7 @@ static void mcrxr(jit_state_t*, int32_t);
 #  define _SUBFZE_(d,a)			_FXO_(31,d,a,0,0,200)
 #  define _SUBFZEO(d,a)			_FXO(31,d,a,0,1,200)
 #  define _SUBFZEO_(d,a)			_FXO_(31,d,a,0,1,200)
-#  define _SYNC()			_FX(31,0,0,0,598)
+#  define _SYNC(l, sc)			_FX(31,l,sc,0,598)
 #  define _TLBIA()			_FX(31,0,0,0,370)
 #  define _TLBIE(b)			_FX(31,0,0,b,306)
 #  define _TLBSYNC()			_FX(31,0,0,0,566)
@@ -473,6 +474,25 @@ static void mcrxr(jit_state_t*, int32_t);
 #  define _XOR_(d,a,b)			_FX_(31,a,d,b,316)
 #  define _XORI(s,a,u)			_FDu(26,a,s,u)
 #  define _XORIS(s,a,u)			_FDu(27,a,s,u)
+
+// Atomics
+#  define _LDARX(rt, ra, rb)            _FX(31, rt, ra, rb, 84)
+#  define _HWSYNC()                     _SYNC(0, 0)
+
+#if __WORDSIZE == 64
+#  define _STX(r0, r1) _STD(r0, r1, 0)
+#  define _LXX(r0, r1) _LD(r0, r1, 0)
+#  define _CMPX(r0, r1) _CMPD(r0, r1)
+#  define _LXARX(r0, r1) _LDARX(r0, 0, r1)
+#  define _STXCX(r0, r1) _STDCX(r0, 0, r1)
+#else
+#  define _STX(r0, r1) _STW(r0, r1, 0)
+#  define _LXX(r0, r1) _LW(r0, r1, 0)
+#  define _CMPX(r0, r1) _CMPW(r0, r1)
+#  define _LXARX(r0, r1) _LWARX(r0, 0, r1)
+#  define _STXCX(r0, r1) _STWCX(r0, 0, r1)
+#endif
+
 static void nop(jit_state_t*,int32_t);
 static void movr(jit_state_t*,int32_t,int32_t);
 static void movi(jit_state_t*,int32_t,jit_word_t);
@@ -701,6 +721,9 @@ static void jmpi(jit_state_t*,jit_word_t);
 static void callr(jit_state_t*,int32_t);
 static void calli(jit_state_t*,jit_word_t);
 
+static void push_link_register(jit_state_t *);
+static void pop_link_register(jit_state_t *);
+
 #  define _u16(v)			((v) & 0xffff)
 #  define _u26(v)			((v) & 0x3ffffff)
 static uint32_t
@@ -814,7 +837,7 @@ FCI(int o, int d, int l, int a, int s)
 #if DEBUG
     else		abort();
 #endif
-    instr_t ins = {.X = {.po = o, .f0 = d << 3 | l, .ra = a, .rb = 0, .xo = _u16(s), .u0 = 0}};
+    instr_t ins = {.D = {.po = o, .rx = d << 2 | l, .ra = a, .d = _u16(s)}};
     return ins.w;
 }
 
@@ -1096,9 +1119,9 @@ typedef struct {
 	instr_t ori0;
 	instr_t sldi0;
 
-	instr_t lis1;
-	instr_t sldi1;
 	instr_t ori1;
+	instr_t sldi1;
+	instr_t ori2;
 #else
 	instr_t lis;
 	instr_t ori;
@@ -1113,8 +1136,8 @@ patch_immediate_reloc(uint32_t *loc, jit_pointer_t addr)
 #if __WORDSIZE == 64
     i->lis0.D.d = a >> 48;
     i->ori0.D.d = a >> 32;
-    i->lis1.D.d = a >> 16;
-    i->ori1.D.d = a & 0xffff;
+    i->ori1.D.d = a >> 16;
+    i->ori2.D.d = a & 0xffff;
 #else
     i->lis.D.d = a >> 16;
     i->ori.D.d = a & 0xffff;
@@ -1127,16 +1150,14 @@ emit_immediate_reloc(jit_state_t *_jit, int32_t r0, jit_bool_t in_veneer)
     void (*emit)(jit_state_t * _jit, uint32_t u32) =
 	    in_veneer ? emit_u32 : emit_u32_with_pool;
 
-#  if __WORDSIZE == 32
-    emit(_jit, _LIS(r0, 0));
-#  else
     emit(_jit, _LIS(r0, 0));
     emit(_jit, _ORI(r0, r0, 0));
+#  if __WORDSIZE == 64
     emit(_jit, _SLDI(r0, r0, 16));
     emit(_jit, _ORI(r0, r0, 0));
     emit(_jit, _SLDI(r0, r0, 16));
+    emit(_jit, _ORI(r0, r0, 0));
 #  endif
-    emit(_jit, _ORI(r0, r0, 0));
 }
 
 static jit_reloc_t
@@ -2406,10 +2427,10 @@ ldxi_i(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 	if (r1 == rn(_R0)) {
 	    jit_gpr_t reg = get_temp_gpr(_jit);
 	    movr(_jit, rn(reg), r1);
-	    em_wp(_jit, _LWZ(r0, rn(reg), i0));
+	    em_wp(_jit, _LW(r0, rn(reg), i0));
 	    unget_temp_gpr(_jit);
 	} else {
-	    em_wp(_jit, _LWZ(r0, r1, i0));
+	    em_wp(_jit, _LW(r0, r1, i0));
 	}
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
@@ -2445,7 +2466,7 @@ ldxr_i(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 {
     if (r1 == rn(_R0)) {
 	if (r2 != rn(_R0)) {
-	    em_wp(_jit, _LWZX(r0, r2, r1));
+	    em_wp(_jit, _LWAX(r0, r2, r1));
 	} else {
 	    jit_gpr_t reg = get_temp_gpr(_jit);
 	    movr(_jit, rn(reg), r1);
@@ -2453,7 +2474,7 @@ ldxr_i(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 	    unget_temp_gpr(_jit);
 	}
     } else {
-	em_wp(_jit, _LWZX(r0, r1, r2));
+	em_wp(_jit, _LWAX(r0, r1, r2));
     }
 }
 
@@ -2678,7 +2699,7 @@ stxi_c(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 static void
 str_s(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _STBX(r1, rn(_R0), r0));
+    em_wp(_jit, _STHX(r1, rn(_R0), r0));
 }
 
 static void
@@ -2882,7 +2903,6 @@ jmpr(jit_state_t *_jit, int32_t r0)
 static void
 jmpi_with_link(jit_state_t *_jit, jit_word_t i0)
 {
-    // TODO check
     calli(_jit, i0);
 }
 
@@ -2938,7 +2958,7 @@ calli(jit_state_t *_jit, jit_word_t i0)
 {
 #  if __ppc__
     if (can_sign_extend_jump_p(i0)) {
-	BL(d);
+	em_wp(_jit, _BL(i0));
     } else
 #  endif
     {
@@ -3028,10 +3048,10 @@ ldr_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
     // TODO long vs int?
     emit_u32(_jit, _HWSYNC());
-    emit_u32(_jit, _LDX(r0, r1));
-    emit_u32(_jit, _CMPW(r0, r0));
+    emit_u32(_jit, _LXX(r0, r1));
+    emit_u32(_jit, _CMPX(r0, r0));
     jit_reloc_t w = emit_cc_jump(_jit, _BNE(0));
-    jit_patch_here(w);
+    jit_patch_here(_jit, w);
     emit_u32(_jit, _ISYNC());
 }
 
@@ -3039,37 +3059,66 @@ static void
 str_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
     emit_u32(_jit, _HWSYNC());
-    emit_u32(_jit, _STW(r0, r1));
+    emit_u32(_jit, _STX(r1, r0));
 }
 
 static void
 swap_atomic(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 {
+    // if r0 == r1, we might overwrite something if we didn't use temporaries
+    jit_gpr_t t0 = get_temp_gpr(_jit);
+
     emit_u32(_jit, _HWSYNC());
-    emit_u32(_jit, _LWARX(r1, r2));
-    emit_u32(_jit, _STWCX(r0, r2));
+    jit_pointer_t a = jit_address(_jit);
+    emit_u32(_jit, _LXARX(rn(t0), r1));
+    emit_u32(_jit, _STXCX(r2, r1));
     jit_reloc_t w = emit_atomic_jump(_jit, _BNE(0));
-    jit_patch_here(w);
+    jit_patch_there(_jit, w, a);
     emit_u32(_jit, _ISYNC());
+    movr(_jit, r0, rn(t0));
+
+    unget_temp_gpr(_jit);
 }
 
 static void
 cas_atomic(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2, int32_t r3)
 {
-    // TODO too tired right now :D
+    jit_gpr_t t0 = get_temp_gpr(_jit);
+
+    emit_u32(_jit, _HWSYNC());
+    jit_pointer_t loop = jit_address(_jit);
+    emit_u32(_jit, _LXARX(rn(t0), r1));
+    emit_u32(_jit, _CMPX(r2, rn(t0)));
+
+    jit_reloc_t s = emit_atomic_jump(_jit, _BNE(0));
+
+    emit_u32(_jit, _STXCX(r3, r1));
+
+    jit_reloc_t w = emit_atomic_jump(_jit, _BNE(0));
+
+    jit_patch_here(_jit, s);
+
+    jit_patch_there(_jit, w, loop);
+
+    emit_u32(_jit, _ISYNC());
+    movr(_jit, r0, r1);
+    unget_temp_gpr(_jit);
 }
 
 static void
 pop_link_register(jit_state_t *_jit)
 {
+    em_wp(_jit, _MFLR(rn(_R0)));
 }
 
 static void
 push_link_register(jit_state_t *_jit)
 {
+    em_wp(_jit, _MTLR(rn(_R0)));
 }
 
 static void
 breakpoint(jit_state_t *_jit)
 {
+    (void)_jit;
 }

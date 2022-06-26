@@ -420,8 +420,12 @@ truncr_d_i(jit_state_t *_jit, int32_t r0, int32_t r1)
     jit_fpr_t reg = get_temp_fpr(_jit);
     em_wp(_jit, _FCTIWZ(fn(reg), r1));
     /* use reserved 8 bytes area */
-    stxi_d(_jit, alloca_offset - 8, rn(_FP), fn(reg));
-    ldxi_i(_jit, r0, rn(_FP), alloca_offset - 4);
+    stxi_d(_jit, -8, rn(_FP), fn(reg));
+#if __BYTE_ORDER == __BIG_ENDIAN
+    ldxi_i(_jit, r0, rn(_FP), -4);
+#else
+    ldxi_i(_jit, r0, rn(_FP), -8);
+#endif
     unget_temp_fpr(_jit);
 }
 

@@ -484,11 +484,11 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 static void
 jit_prolog(jit_state_t *_jit)
 {
-	em_wp(_jit, _MFLR(rn(_R0)));
+	pop_link_register(_jit);
 }
 
 static void
 jit_epilog(jit_state_t *_jit)
 {
-	em_wp(_jit, _MTLR(rn(_R0)));
+	push_link_register(_jit);
 }

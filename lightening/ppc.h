@@ -128,6 +128,7 @@
 #define JIT_FP _R31
 #define JIT_SP _R1
 
+// TODO shouldn't these be one-to-one?
 #define JIT_F0 _F0
 #define JIT_F1 _F2
 #define JIT_F2 _F4
@@ -146,8 +147,7 @@
 #define JIT_VF7 _F28
 #define JIT_FTMP _F30
 
-// TODO: Should link register be used?
-#define JIT_LR JIT_TMP0
+#define JIT_LR _R0
 
 #define JIT_PLATFORM_CALLEE_SAVE_GPRS _R0, JIT_SP, JIT_FP, JIT_TMP0, JIT_TMP1
 #define JIT_PLATFORM_CALLEE_SAVE_FPRS JIT_FTMP
