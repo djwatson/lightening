@@ -44,7 +44,7 @@
 #  define can_zero_extend_short_p(im)	((im) >= 0 && (im) <= 65535)
 #  define can_sign_extend_jump_p(im)	((im) >= -33554432 && (im) <= 33554431)
 
-#define simm14_p(i0) ((i0) <= 0x1fff && (i0) >= -0x3000)
+#define simm14_p(i0) ((i0) <= 0x3fff && (i0) >= -0x4000)
 #define simm24_p(i0) ((i0) <= 0xfffff && (i0) >= -0x100000)
 
 #  define _FXO(o,d,a,b,e,x)		FXO(o,d,a,b,e,x,0)
