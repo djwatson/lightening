@@ -958,10 +958,17 @@ patch_veneer(uint32_t *loc, jit_pointer_t addr)
 }
 
 static void
-emit_veneer(jit_state_t *_jit, jit_pointer_t targer)
+emit_veneer(jit_state_t *_jit, jit_pointer_t target)
 {
+    jit_pointer_t veneer = jit_address(_jit);
+
     jit_gpr_t reg = get_temp_gpr(_jit);
     emit_immediate_reloc(_jit, rn(reg), 1);
+
+    // see mips-cpu.c:emit_veneer()
+    if (!jit_has_overflow(_jit))
+	patch_veneer(veneer, target);
+
     emit_u32(_jit, _MTCTR(rn(reg)));
     emit_u32(_jit, _BCTR());
     unget_temp_gpr(_jit);

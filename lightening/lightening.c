@@ -1510,9 +1510,8 @@ jit_load_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 static uint32_t
 literal_pool_byte_size(struct jit_literal_pool *pool)
 {
-  // Assume that we might need a uint32_t to branch over a table, and up
-  // to 7 bytes for alignment of the table.  Then we assume that no
-  // entry will be more than two words.
+  // Check arch header for actual values for these literals, or if applicable,
+  // see default values defined in lightening.h
   return JIT_JMP_MAX_SIZE + 7 + pool->size * JIT_LITERAL_MAX_SIZE;
 }
 
