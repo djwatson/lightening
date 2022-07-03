@@ -2908,9 +2908,19 @@ jmpr(jit_state_t *_jit, int32_t r0)
 }
 
 static void
+jmpr_with_link(jit_state_t *_jit, int32_t r0)
+{
+    em_wp(_jit, _MTCTR(r0));
+    em_wp(_jit, _BCTRL());
+}
+
+static void
 jmpi_with_link(jit_state_t *_jit, jit_word_t i0)
 {
-    calli(_jit, i0);
+    jit_gpr_t reg = get_temp_gpr(_jit);
+    movi(_jit, rn(reg), i0);
+    jmpr_with_link(_jit, rn(reg));
+    unget_temp_gpr(_jit);
 }
 
 static void
@@ -2928,15 +2938,16 @@ jmp(jit_state_t *_jit)
     return emit_jump(_jit, _B(0));
 }
 
+// Heavily assumes prepare_call_args() has been called beforehand
 static void
 callr(jit_state_t *_jit, int32_t r0)
 {
     // Build up temporary stack frame
     stxi_l(_jit, 0, rn(JIT_SP), rn(JIT_FP));
-    stxi_l(_jit, 16, rn(JIT_SP), rn(_R0));
+    stxi_l(_jit, 16, rn(JIT_SP), rn(JIT_LR));
     movr(_jit, rn(JIT_FP), rn(JIT_SP));
-    em_wp(_jit, _MTCTR(r0));
-    em_wp(_jit, _BCTRL());
+
+    jmpr_with_link(_jit, r0);
 
     // Restore previous stack frame location
     ldxi_l(_jit, rn(JIT_FP), rn(JIT_SP), 0);

@@ -421,7 +421,7 @@ reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 	memset(iter, 0, sizeof(*iter));
 	iter->argc = argc;
 	iter->args = args;
-	iter->stack_size = 48;
+	iter->stack_size = 32;
 }
 
 static int
@@ -477,7 +477,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 	}
 
 	// If this is the first time we're here, insert register spill area
-	if (iter->stack_size == 48)
+	if (iter->stack_size == 32)
 		iter->stack_size = 96;
 
 	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
