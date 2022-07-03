@@ -491,12 +491,14 @@ static void
 jit_prolog(jit_state_t *_jit)
 {
 	pop_link_register(_jit);
-	stxi_l(_jit, rn(JIT_SP), 0, rn(JIT_FP));
+	stxi_l(_jit, 0, rn(JIT_SP), rn(JIT_FP));
+	stxi_l(_jit, 16, rn(JIT_SP), rn(_R0));
 }
 
 static void
 jit_epilog(jit_state_t *_jit)
 {
 	ldxi_l(_jit, rn(JIT_FP), rn(JIT_SP), 0);
+	ldxi_l(_jit, rn(_R0), rn(JIT_SP), 16);
 	push_link_register(_jit);
 }
