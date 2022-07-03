@@ -421,7 +421,7 @@ reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 	memset(iter, 0, sizeof(*iter));
 	iter->argc = argc;
 	iter->args = args;
-	iter->stack_size = 96;
+	iter->stack_size = 48;
 }
 
 static int
@@ -464,6 +464,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 	ASSERT(iter->arg_idx < iter->argc);
 	enum jit_operand_abi abi = iter->args[iter->arg_idx].abi;
 	iter->arg_idx++;
+
 	if (is_gpr_arg(abi) && iter->gpr_idx < abi_gpr_arg_count) {
 		*arg = jit_operand_gpr(abi, abi_gpr_args[iter->gpr_idx++]);
 		return;
@@ -475,8 +476,12 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 		return;
 	}
 
-	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
+	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size - 8);
 	int abi_size = jit_operand_abi_sizeof(abi);
+	// If this is the first time we're here, insert register spill area
+	if (iter->stack_size == 48)
+		iter->stack_size += 64;
+
 	iter->stack_size += jit_align_up(abi_size, 8);
 }
 
