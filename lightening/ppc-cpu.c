@@ -2947,6 +2947,9 @@ callr(jit_state_t *_jit, int32_t r0)
     stxi_l(_jit, 16, rn(JIT_SP), rn(JIT_LR));
     movr(_jit, rn(JIT_FP), rn(JIT_SP));
 
+    // Some kind of linking stuff?
+    movr(_jit, rn(_R12), r0);
+
     jmpr_with_link(_jit, r0);
 
     // Restore previous stack frame location
