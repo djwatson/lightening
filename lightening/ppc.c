@@ -478,7 +478,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 
 	// If this is the first time we're here, insert register spill area
 	if (iter->stack_size == 48)
-		iter->stack_size += 64;
+		iter->stack_size = 96;
 
 	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
 
@@ -491,14 +491,10 @@ static void
 jit_prolog(jit_state_t *_jit)
 {
 	pop_link_register(_jit);
-	stxi_l(_jit, 0, rn(JIT_SP), rn(JIT_FP));
-	stxi_l(_jit, 16, rn(JIT_SP), rn(_R0));
 }
 
 static void
 jit_epilog(jit_state_t *_jit)
 {
-	ldxi_l(_jit, rn(JIT_FP), rn(JIT_SP), 0);
-	ldxi_l(_jit, rn(_R0), rn(JIT_SP), 16);
 	push_link_register(_jit);
 }

@@ -2928,35 +2928,18 @@ jmp(jit_state_t *_jit)
     return emit_jump(_jit, _B(0));
 }
 
-// TODO this might not be required in lightening?
 static void
 callr(jit_state_t *_jit, int32_t r0)
 {
-#  if __powerpc__
-#    if ABI_ELFv2
-    movr(_jit, rn(_R12), r0);
-#    else
-    stxi(_jit, sizeof(void*) * 5, rn(JIT_SP), rn(_R2));
-    /* FIXME Pretend to not know about r11? */
-    if (r0 == rn(_R0)) {
-	movr(_jit, rn(_R11), rn(_R0));
-	ldxi(_jit, rn(_R2), rn(_R11), sizeof(void*));
-	ldxi(_jit, rn(_R11), rn(_R11), sizeof(void*) * 2);
-    }
-    else {
-	ldxi(_jit, rn(_R2), r0, sizeof(void*));
-	ldxi(_jit, rn(_R11), r0, sizeof(void*) * 2);
-    }
-    ldr(_jit, r0, r0);
-#    endif
-#  endif
-
+    // Build up temporary stack frame
+    stxi_l(_jit, 0, rn(JIT_SP), rn(JIT_FP));
+    stxi_l(_jit, 16, rn(JIT_SP), rn(_R0));
+    movr(_jit, rn(JIT_FP), rn(JIT_SP));
     em_wp(_jit, _MTCTR(r0));
     em_wp(_jit, _BCTRL());
 
-#  if __powerpc__ && !ABI_ELFv2
-    ldxi(_jit, rn(_R2), rn(_SP), sizeof(void*) * 5);
-#  endif
+    // Restore previous stack frame location
+    ldxi_l(_jit, rn(JIT_FP), rn(JIT_SP), 0);
 }
 
 /* assume fixed address or reachable address */
