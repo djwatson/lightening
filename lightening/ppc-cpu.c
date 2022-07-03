@@ -2932,8 +2932,31 @@ jmp(jit_state_t *_jit)
 static void
 callr(jit_state_t *_jit, int32_t r0)
 {
+#  if __powerpc__
+#    if ABI_ELFv2
+    movr(_jit, rn(_R12), r0);
+#    else
+    stxi(_jit, sizeof(void*) * 5, rn(JIT_SP), rn(_R2));
+    /* FIXME Pretend to not know about r11? */
+    if (r0 == rn(_R0)) {
+	movr(_jit, rn(_R11), rn(_R0));
+	ldxi(_jit, rn(_R2), rn(_R11), sizeof(void*));
+	ldxi(_jit, rn(_R11), rn(_R11), sizeof(void*) * 2);
+    }
+    else {
+	ldxi(_jit, rn(_R2), r0, sizeof(void*));
+	ldxi(_jit, rn(_R11), r0, sizeof(void*) * 2);
+    }
+    ldr(_jit, r0, r0);
+#    endif
+#  endif
+
     em_wp(_jit, _MTCTR(r0));
     em_wp(_jit, _BCTRL());
+
+#  if __powerpc__ && !ABI_ELFv2
+    ldxi(_jit, rn(_R2), rn(_SP), sizeof(void*) * 5);
+#  endif
 }
 
 /* assume fixed address or reachable address */

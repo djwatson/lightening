@@ -490,21 +490,10 @@ static void
 jit_prolog(jit_state_t *_jit)
 {
 	pop_link_register(_jit);
-#if __WORDSIZE == 64
-	stxi_l(_jit, -8, rn(JIT_SP), rn(JIT_FP));
-#else
-	// TODO: check
-	stxi_i(_jit, -4, rn(JIT_SP), rn(JIT_FP));
-#endif
 }
 
 static void
 jit_epilog(jit_state_t *_jit)
 {
-#if __WORDSIZE == 64
-	ldxi_l(_jit, rn(JIT_FP), rn(JIT_SP), -8);
-#else
-	ldxi_i(_jit, rn(JIT_FP), rn(JIT_SP), -4);
-#endif
 	push_link_register(_jit);
 }
