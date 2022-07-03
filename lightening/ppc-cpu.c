@@ -1020,7 +1020,7 @@ emit_cc_jump(jit_state_t *_jit, uint32_t inst)
 	jit_reloc_t w = jit_reloc(_jit, JIT_RELOC_JCC_WITH_VENEER, 0, _jit->pc.uc,
 		pc_base,
 		2);
-	uint8_t jump_width = 16;
+	uint8_t jump_width = 14;
 
 	if (add_pending_literal(_jit, w, jump_width - 1)) {
 	    em_wp(_jit, patch_cc_jump(inst, off >> 2));
@@ -1038,7 +1038,7 @@ emit_atomic_jump(jit_state_t *_jit, uint32_t inst)
 	jit_reloc_t w = jit_reloc(_jit, JIT_RELOC_JCC_WITH_VENEER, 0, _jit->pc.uc,
 		pc_base,
 		2);
-	uint8_t jump_width = 16;
+	uint8_t jump_width = 14;
 
 	// TODO is JCC_WITH_VENEER fine here?
 	if (add_pending_literal(_jit, w, jump_width - 1)) {
@@ -1065,7 +1065,7 @@ emit_jump(jit_state_t *_jit, uint32_t inst)
 	jit_reloc_t w = jit_reloc(_jit, JIT_RELOC_JMP_WITH_VENEER, 0, _jit->pc.uc,
 		pc_base,
 		2);
-	uint8_t jump_width = 26;
+	uint8_t jump_width = 24;
 
 	if (add_pending_literal(_jit, w, jump_width - 1)) {
 	    em_wp(_jit, patch_jump(inst, off >> 2));
