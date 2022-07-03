@@ -2963,17 +2963,10 @@ callr(jit_state_t *_jit, int32_t r0)
 static void
 calli(jit_state_t *_jit, jit_word_t i0)
 {
-#  if __ppc__
-    if (can_sign_extend_jump_p(i0)) {
-	em_wp(_jit, _BL(i0));
-    } else
-#  endif
-    {
-	jit_gpr_t reg = get_temp_gpr(_jit);
-	movi(_jit, rn(reg), i0);
-	callr(_jit, rn(reg));
-	unget_temp_gpr(_jit);
-    }
+    jit_gpr_t reg = get_temp_gpr(_jit);
+    movi(_jit, rn(reg), i0);
+    callr(_jit, rn(reg));
+    unget_temp_gpr(_jit);
 }
 
 static void

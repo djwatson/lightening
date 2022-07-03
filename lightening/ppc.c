@@ -347,7 +347,7 @@ jit_init(jit_state_t *_jit)
 static size_t
 jit_initial_frame_size(void)
 {
-	return 32;
+	return 0;
 }
 
 static size_t
@@ -476,7 +476,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 		return;
 	}
 
-	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size - 8);
+	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
 	int abi_size = jit_operand_abi_sizeof(abi);
 	// If this is the first time we're here, insert register spill area
 	if (iter->stack_size == 48)
