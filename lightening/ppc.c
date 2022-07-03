@@ -476,12 +476,13 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 		return;
 	}
 
-	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
-	int abi_size = jit_operand_abi_sizeof(abi);
 	// If this is the first time we're here, insert register spill area
 	if (iter->stack_size == 48)
 		iter->stack_size += 64;
 
+	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
+
+	int abi_size = jit_operand_abi_sizeof(abi);
 	iter->stack_size += jit_align_up(abi_size, 8);
 }
 
