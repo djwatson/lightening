@@ -161,4 +161,6 @@
 #define JIT_LITERAL_MAX_SIZE ((sizeof(uint32_t) * 2) + JIT_JMP_MAX_SIZE)
 #endif
 
+#define JIT_INST_MAX_SIZE JIT_JMP_MAX_SIZE
+
 #endif /* _jit_ppc_h */
