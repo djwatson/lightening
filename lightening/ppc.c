@@ -43,7 +43,7 @@ static const jit_gpr_t abi_gpr_args[] = {
 };
 
 static const jit_fpr_t abi_fpr_args[] = {
-	_F1, _F2, _F3, _F4, _F5, _F6, _F7, _F8, _F9
+	_F1, _F2, _F3, _F4, _F5, _F6, _F7, _F8, _F9, _F10, _F11, _F12, _F13
 };
 
 static const int abi_gpr_arg_count = sizeof(abi_gpr_args) / sizeof(abi_gpr_args[0]);
