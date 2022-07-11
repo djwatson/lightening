@@ -479,7 +479,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 	}
 
 	iter->stack_size = iter->stack_counter - 8;
-	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
+	*arg = jit_operand_mem(abi, JIT_SP, _jit->frame_size + iter->stack_size);
 }
 
 // Prepare _R0 to be saved to stack. Slightly hacky?
