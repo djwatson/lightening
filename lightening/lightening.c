@@ -1422,6 +1422,7 @@ jit_leave_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
   ASSERT(offset <= frame_size);
 
   jit_shrink_stack(_jit, frame_size);
+  _jit->frame_size -= jit_initial_frame_size();
 
 #if JIT_NEEDS_PROLOG
   jit_epilog(_jit);
@@ -1436,7 +1437,11 @@ prepare_call_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
   struct abi_arg_iterator iter;
   
   // Compute shuffle destinations and space for spilled arguments.
+#if JIT_ASYMMETRIC_STACK
+  reset_call_arg_iterator(&iter, argc, args);
+#else
   reset_abi_arg_iterator(&iter, argc, args);
+#endif
   for (size_t i = 0; i < argc; i++)
     next_abi_arg(&iter, &dst[i]);
 
@@ -1499,7 +1504,11 @@ jit_locate_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 {
   struct abi_arg_iterator iter;
     
+#if JIT_ASYMMETRIC_STACK
+  reset_load_arg_iterator(&iter, argc, args);
+#else
   reset_abi_arg_iterator(&iter, argc, args);
+#endif
   iter.stack_size += _jit->frame_size;
   for (size_t i = 0; i < argc; i++)
     next_abi_arg(&iter, &args[i]);

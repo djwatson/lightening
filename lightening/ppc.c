@@ -349,7 +349,7 @@ jit_init(jit_state_t *_jit)
 static size_t
 jit_initial_frame_size(void)
 {
-	return 16;
+	return 32;
 }
 
 static size_t
@@ -417,13 +417,24 @@ bless_function_pointer(void *ptr)
 }
 
 static void
-reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
+reset_call_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 		const jit_operand_t *args)
 {
 	memset(iter, 0, sizeof(*iter));
 	iter->argc = argc;
 	iter->args = args;
 	iter->stack_size = 32;
+}
+
+static void
+reset_load_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
+		const jit_operand_t *args)
+{
+	memset(iter, 0, sizeof(*iter));
+	iter->argc = argc;
+	iter->args = args;
+	// Skip over initial frame
+	iter->stack_size = 0;
 }
 
 static int
@@ -484,8 +495,8 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 		iter->flags = 1;
 	}
 
+	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
 	iter->stack_size += 8;
-	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size - 8);
 }
 
 // Prepare _R0 to be saved to stack. Slightly hacky?
