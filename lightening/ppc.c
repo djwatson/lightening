@@ -347,7 +347,7 @@ jit_init(jit_state_t *_jit)
 static size_t
 jit_initial_frame_size(void)
 {
-	return 0;
+	return 16;
 }
 
 static size_t

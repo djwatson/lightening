@@ -38,7 +38,6 @@
 #    define fits_uint32_p(im)		((im & 0xffffffff00000000L) == 0)
 #  endif
 #  define fpr_save_area			64
-#  define alloca_offset			-(gpr_save_area + fpr_save_area)
 
 #  define can_sign_extend_short_p(im)	((im) >= -32768 && (im) <= 32767)
 #  define can_zero_extend_short_p(im)	((im) >= 0 && (im) <= 65535)

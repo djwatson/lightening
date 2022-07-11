@@ -264,10 +264,10 @@ movi_f(jit_state_t *_jit, int32_t r0, jit_float32_t i0)
     data.f = i0;
     jit_fpr_t reg = get_temp_fpr(_jit);
     movi(_jit, fn(reg), data.i & 0xffffffff);
-    stxi_i(_jit, alloca_offset - 4, rn(_FP), fn(reg));
+    stxi_i(_jit, -8, rn(_FP), fn(reg));
     unget_temp_fpr(_jit);
 
-    ldxi_f(_jit, r0, rn(_FP), alloca_offset - 4);
+    ldxi_f(_jit, r0, rn(_FP), -8);
 }
 
 static void
@@ -283,15 +283,15 @@ movi_d(jit_state_t *_jit, int32_t r0, jit_float64_t i0)
     jit_gpr_t reg = get_temp_gpr(_jit);
 #  if __WORDSIZE == 32
     movi(_jit, rn(reg), data.i[0]);
-    stxi_i(_jit, alloca_offset - 8, rn(_FP), rn(reg));
+    stxi_i(_jit, -4, rn(_FP), rn(reg));
     movi(_jit, rn(reg), data.i[1]);
-    stxi_i(_jit, alloca_offset - 4, rn(_FP), rn(reg));
+    stxi_i(_jit, -8, rn(_FP), rn(reg));
 #  else
     movi(_jit, rn(reg), data.w);
-    stxi_l(_jit, alloca_offset - 8, rn(_FP), rn(reg));
+    stxi_l(_jit, -8, rn(_FP), rn(reg));
 #  endif
     unget_temp_gpr(_jit);
-    ldxi_d(_jit, r0, rn(_FP), alloca_offset - 8);
+    ldxi_d(_jit, r0, rn(_FP), -8);
 }
 
 /* should only work on newer ppc (fcfid is a ppc64 instruction) */
@@ -302,13 +302,13 @@ extr_d(jit_state_t *_jit, int32_t r0, int32_t r1)
     jit_gpr_t reg = get_temp_gpr(_jit);
     rshi(_jit, rn(reg), r1, 31);
     /* use reserved 8 bytes area */
-    stxi_i(_jit, alloca_offset - 4, rn(_FP), r1);
-    stxi_i(_jit, alloca_offset - 8, rn(_FP), rn(reg));
+    stxi_i(_jit, -8, rn(_FP), r1);
+    stxi_i(_jit, -4, rn(_FP), rn(reg));
     unget_temp_gpr(_jit);
 #  else
-    stxi_l(_jit, alloca_offset - 8, rn(_FP), r1);
+    stxi_l(_jit, -8, rn(_FP), r1);
 #  endif
-    ldxi_d(_jit, r0, rn(_FP), alloca_offset - 8);
+    ldxi_d(_jit, r0, rn(_FP), -8);
     em_wp(_jit, _FCFID(r0, r0));
 }
 
@@ -442,8 +442,8 @@ truncr_d_l(jit_state_t *_jit, int32_t r0, int32_t r1)
     jit_fpr_t reg = get_temp_fpr(_jit);
     em_wp(_jit, _FCTIDZ(fn(reg), r1));
     /* use reserved 8 bytes area */
-    stxi_d(_jit, alloca_offset - 8, rn(_FP), fn(reg));
-    ldxi_l(_jit, r0, rn(_FP), alloca_offset - 8);
+    stxi_d(_jit, -8, rn(_FP), fn(reg));
+    ldxi_l(_jit, r0, rn(_FP), -8);
     unget_temp_fpr(_jit);
 }
 
