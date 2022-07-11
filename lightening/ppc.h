@@ -167,7 +167,7 @@
 #define JIT_LR _R0
 
 #define JIT_PLATFORM_CALLEE_SAVE_GPRS _R0, JIT_SP, JIT_FP, JIT_TMP0, JIT_TMP1
-#define JIT_PLATFORM_CALLEE_SAVE_FPRS JIT_FTMP
+#define JIT_PLATFORM_CALLEE_SAVE_FPRS
 
 // At most, we need MTCTR & BCTR, so two instructions per jump.
 #define JIT_JMP_MAX_SIZE (sizeof(uint32_t) * 2)
