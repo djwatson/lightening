@@ -158,4 +158,6 @@
 #  define JIT_PLATFORM_CALLEE_SAVE_GPRS /**/
 #endif
 
+#define JIT_PLATFORM_CALLEE_SAVE_FPRS
+
 #endif /* _jit_x86_h */

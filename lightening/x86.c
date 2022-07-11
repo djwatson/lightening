@@ -405,3 +405,15 @@ bless_function_pointer(void *ptr)
 {
   return ptr;
 }
+
+static void
+jit_prolog(jit_state_t *_jit)
+{
+  (void)_jit;
+}
+
+static void
+jit_epilog(jit_state_t *_jit)
+{
+  (void)_jit;
+}
