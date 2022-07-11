@@ -1382,7 +1382,9 @@ jit_enter_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
 
   _jit->frame_size = jit_initial_frame_size();
 
+#if JIT_NEEDS_PROLOG
   jit_prolog(_jit);
+#endif
 
   size_t reserved =
     jit_align_stack(_jit, (pv_count + pf_count + v) * (__WORDSIZE / 8) + vf * 8);
@@ -1421,7 +1423,9 @@ jit_leave_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
 
   jit_shrink_stack(_jit, frame_size);
 
+#if JIT_NEEDS_PROLOG
   jit_epilog(_jit);
+#endif
 }
 
 // Precondition: stack is already aligned.

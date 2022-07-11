@@ -317,12 +317,14 @@ struct abi_arg_iterator
   const jit_operand_t *args;
   size_t argc;
 
+  size_t flags;
+
   size_t arg_idx;
   size_t gpr_idx;
   size_t fpr_idx;
 
   size_t stack_size;
-  size_t stack_counter;
+  size_t stack_padding;
 };
 
 static size_t page_size;
@@ -422,7 +424,6 @@ reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 	iter->argc = argc;
 	iter->args = args;
 	iter->stack_size = 32;
-	iter->stack_counter = 32;
 }
 
 static int
@@ -464,7 +465,6 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 {
 	ASSERT(iter->arg_idx < iter->argc);
 	enum jit_operand_abi abi = iter->args[iter->arg_idx].abi;
-	iter->stack_counter += 8;
 	iter->arg_idx++;
 
 	if (is_gpr_arg(abi) && iter->gpr_idx < abi_gpr_arg_count) {
@@ -478,8 +478,14 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 		return;
 	}
 
-	iter->stack_size = iter->stack_counter - 8;
-	*arg = jit_operand_mem(abi, JIT_SP, _jit->frame_size + iter->stack_size);
+	// if this is the first time here, append register save area
+	if (!iter->flags) {
+		iter->stack_size += (iter->arg_idx - 1) * 8;
+		iter->flags = 1;
+	}
+
+	iter->stack_size += 8;
+	*arg = jit_operand_mem(abi, JIT_SP, iter->stack_size - 8);
 }
 
 // Prepare _R0 to be saved to stack. Slightly hacky?
