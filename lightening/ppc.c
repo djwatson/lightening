@@ -437,40 +437,6 @@ reset_load_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
 	iter->stack_size = 0;
 }
 
-static int
-jit_operand_abi_sizeof(enum jit_operand_abi abi)
-{
-	switch (abi) {
-		case JIT_OPERAND_ABI_UINT8:
-		case JIT_OPERAND_ABI_INT8:
-			return 1;
-
-		case JIT_OPERAND_ABI_UINT16:
-		case JIT_OPERAND_ABI_INT16:
-			return 2;
-
-		case JIT_OPERAND_ABI_UINT32:
-		case JIT_OPERAND_ABI_INT32:
-			return 4;
-
-		case JIT_OPERAND_ABI_UINT64:
-		case JIT_OPERAND_ABI_INT64:
-			return 8;
-
-		case JIT_OPERAND_ABI_POINTER:
-			return CHOOSE_32_64(4, 8);
-
-		case JIT_OPERAND_ABI_FLOAT:
-			return 4;
-
-		case JIT_OPERAND_ABI_DOUBLE:
-			return 8;
-
-		default:
-			abort();
-	}
-}
-
 static void
 next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
 {
