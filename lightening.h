@@ -176,7 +176,7 @@ typedef struct jit_operand
 } jit_operand_t;
 
 static inline jit_operand_t
-jit_operand_imm (enum jit_operand_abi abi, intptr_t imm)
+jit_operand_imm (enum jit_operand_abi abi, jit_imm_t imm)
 {
   return (jit_operand_t){ abi, JIT_OPERAND_KIND_IMM, { .imm = imm } };
 }

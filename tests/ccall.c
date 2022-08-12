@@ -3,9 +3,7 @@
 #define _QUOTE(x) #x
 #define QUOTE(x) _QUOTE(x)
 
-#if defined(DEBUG)
-#define DEBUG(x) DEBUG(x);
-#else
+#if !defined(DEBUG)
 #define DEBUG(x)
 #endif
 
