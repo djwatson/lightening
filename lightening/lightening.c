@@ -122,8 +122,16 @@ static void patch_immediate_reloc(uint32_t *loc, jit_pointer_t addr);
 
 static jit_bool_t is_fpr_arg(enum jit_operand_abi arg);
 static jit_bool_t is_gpr_arg(enum jit_operand_abi arg);
+#if JIT_ASYMMETRIC_STACK
+static void reset_call_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
+                                    const jit_operand_t *args);
+
+static void reset_load_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
+                                    const jit_operand_t *args);
+#else
 static void reset_abi_arg_iterator(struct abi_arg_iterator *iter, size_t argc,
                                    const jit_operand_t *args);
+#endif
 static void next_abi_arg(struct abi_arg_iterator *iter,
                          jit_operand_t *arg);
 
@@ -236,8 +244,10 @@ jit_end(jit_state_t *_jit, size_t *length)
     *length = end - start;
   }
 
-  if (_jit->overflow)
+  if (_jit->overflow) {
+    jit_reset(_jit);
     return NULL;
+  }
 
   ASSERT(start);
   ASSERT(start <= end);

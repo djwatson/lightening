@@ -25,7 +25,8 @@ CC_MIPSEL=guix environment --pure -s mipsel-linux --ad-hoc gcc-toolchain -- gcc
 CC_PPC=guix environment --pure -s powerpc-linux --ad-hoc gcc-toolchain -- gcc
 CC_PPC64=guix environment --pure -s powerpc64-linux --ad-hoc gcc-toolchain -- gcc
 CC_PPC64LE=guix environment --pure -s powerpc64le-linux --ad-hoc gcc-toolchain -- gcc
-CFLAGS = -Wall -O0 -g
+CFLAGS = -Wall -O0 -g $(DEBUG)
+DEBUG =
 RUNNER =
 
 all: $(foreach TARGET,$(TARGETS),$(addprefix test-$(TARGET)-,$(TESTS)))
