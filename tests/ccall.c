@@ -3,8 +3,10 @@
 #define _QUOTE(x) #x
 #define QUOTE(x) _QUOTE(x)
 
-#if !defined(DEBUG)
-#define DEBUG(x)
+#if defined(DEBUG)
+#define dump_args(x) puts(x)
+#else
+#define dump_args(x)
 #endif
 
 #define _w0			0
@@ -349,112 +351,112 @@ dat(_d)
 #define dcl0(T)								\
 T C##T##0(void)								\
 {									\
-    DEBUG(QUOTE(C##T##0));\
+    dump_args(QUOTE(C##T##0));\
     return (0);								\
 }
 #define dcl1(T)								\
 dcl0(T)									\
 T C##T##1(T A)								\
 {									\
-    DEBUG(QUOTE(C##T##1));\
+    dump_args(QUOTE(C##T##1));\
     return (A);								\
 }
 #define dcl2(T)								\
 dcl1(T)									\
 T C##T##2(T A,T B)							\
 {									\
-    DEBUG(QUOTE(C##T##2));\
+    dump_args(QUOTE(C##T##2));\
     return (A-B);							\
 }
 #define dcl3(T)								\
 dcl2(T)									\
 T C##T##3(T A,T B,T C)							\
 {									\
-    DEBUG(QUOTE(C##T##3));\
+    dump_args(QUOTE(C##T##3));\
     return (A-B-C);							\
 }
 #define dcl4(T)								\
 dcl3(T)									\
 T C##T##4(T A,T B,T C,T D)						\
 {									\
-    DEBUG(QUOTE(C##T##4));\
+    dump_args(QUOTE(C##T##4));\
     return (A-B-C-D);							\
 }
 #define dcl5(T)								\
 dcl4(T)									\
 T C##T##5(T A,T B,T C,T D,T E)						\
 {									\
-    DEBUG(QUOTE(C##T##5));\
+    dump_args(QUOTE(C##T##5));\
     return (A-B-C-D-E);							\
 }
 #define dcl6(T)								\
 dcl5(T)									\
 T C##T##6(T A,T B,T C,T D,T E,T F)					\
 {									\
-    DEBUG(QUOTE(C##T##6));\
+    dump_args(QUOTE(C##T##6));\
     return (A-B-C-D-E-F);						\
 }
 #define dcl7(T)								\
 dcl6(T)									\
 T C##T##7(T A,T B,T C,T D,T E,T F,T G)					\
 {									\
-    DEBUG(QUOTE(C##T##7));\
+    dump_args(QUOTE(C##T##7));\
     return (A-B-C-D-E-F-G);						\
 }
 #define dcl8(T)								\
 dcl7(T)									\
 T C##T##8(T A,T B,T C,T D,T E,T F,T G,T H)				\
 {									\
-    DEBUG(QUOTE(C##T##8));\
+    dump_args(QUOTE(C##T##8));\
     return (A-B-C-D-E-F-G-H);						\
 }
 #define dcl9(T)								\
 dcl8(T)									\
 T C##T##9(T A,T B,T C,T D,T E,T F,T G,T H,T I)				\
 {									\
-    DEBUG(QUOTE(C##T##9));\
+    dump_args(QUOTE(C##T##9));\
     return (A-B-C-D-E-F-G-H-I);						\
 }
 #define dcl10(T)							\
 dcl9(T)									\
 T C##T##10(T A,T B,T C,T D,T E,T F,T G,T H,T I,T J)			\
 {									\
-    DEBUG(QUOTE(C##T##10));\
+    dump_args(QUOTE(C##T##10));\
     return (A-B-C-D-E-F-G-H-I-J);					\
 }
 #define dcl11(T)							\
 dcl10(T)								\
 T C##T##11(T A,T B,T C,T D,T E,T F,T G,T H,T I,T J,T K)			\
 {									\
-    DEBUG(QUOTE(C##T##11));\
+    dump_args(QUOTE(C##T##11));\
     return (A-B-C-D-E-F-G-H-I-J-K);					\
 }
 #define dcl12(T)							\
 dcl11(T)								\
 T C##T##12(T A,T B,T C,T D,T E,T F,T G,T H,T I,T J,T K,T L)		\
 {									\
-    DEBUG(QUOTE(C##T##12));\
+    dump_args(QUOTE(C##T##12));\
     return (A-B-C-D-E-F-G-H-I-J-K-L);					\
 }
 #define dcl13(T)							\
 dcl12(T)								\
 T C##T##13(T A,T B,T C,T D,T E,T F,T G,T H,T I,T J,T K,T L,T M)		\
 {									\
-    DEBUG(QUOTE(C##T##13));\
+    dump_args(QUOTE(C##T##13));\
     return (A-B-C-D-E-F-G-H-I-J-K-L-M);					\
 }
 #define dcl14(T)							\
 dcl13(T)								\
 T C##T##14(T A,T B,T C,T D,T E,T F,T G,T H,T I,T J,T K,T L,T M,T N)	\
 {									\
-    DEBUG(QUOTE(C##T##14));\
+    dump_args(QUOTE(C##T##14));\
     return (A-B-C-D-E-F-G-H-I-J-K-L-M-N);				\
 }
 #define dcl15(T)							\
 dcl14(T)								\
 T C##T##15(T A,T B,T C,T D,T E,T F,T G,T H,T I,T J,T K,T L,T M,T N,T O)	\
 {									\
-    DEBUG(QUOTE(C##T##15));\
+    dump_args(QUOTE(C##T##15));\
     return (A-B-C-D-E-F-G-H-I-J-K-L-M-N-O);				\
 }
 #define dcl(T)	dcl15(T)
@@ -490,112 +492,112 @@ dcl(_d)
 #define dcl0(T)								\
 T CJ##T##0(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##0));\
+    dump_args(QUOTE(CJ##T##0));\
     return ((*j##T##0)());						\
 }
 #define dcl1(T)								\
 dcl0(T)									\
 T CJ##T##1(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##1));\
+    dump_args(QUOTE(CJ##T##1));\
     return ((*j##T##1)(1));						\
 }
 #define dcl2(T)								\
 dcl1(T)									\
 T CJ##T##2(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##2));\
+    dump_args(QUOTE(CJ##T##2));\
     return ((*j##T##2)(1,2));						\
 }
 #define dcl3(T)								\
 dcl2(T)									\
 T CJ##T##3(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##3));\
+    dump_args(QUOTE(CJ##T##3));\
     return ((*j##T##3)(1,2,3));						\
 }
 #define dcl4(T)								\
 dcl3(T)									\
 T CJ##T##4(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##4));\
+    dump_args(QUOTE(CJ##T##4));\
     return ((*j##T##4)(1,2,3,4));					\
 }
 #define dcl5(T)								\
 dcl4(T)									\
 T CJ##T##5(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##5));\
+    dump_args(QUOTE(CJ##T##5));\
     return ((*j##T##5)(1,2,3,4,5));					\
 }
 #define dcl6(T)								\
 dcl5(T)									\
 T CJ##T##6(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##6));\
+    dump_args(QUOTE(CJ##T##6));\
     return ((*j##T##6)(1,2,3,4,5,6));					\
 }
 #define dcl7(T)								\
 dcl6(T)									\
 T CJ##T##7(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##7));\
+    dump_args(QUOTE(CJ##T##7));\
     return ((*j##T##7)(1,2,3,4,5,6,7));					\
 }
 #define dcl8(T)								\
 dcl7(T)									\
 T CJ##T##8(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##8));\
+    dump_args(QUOTE(CJ##T##8));\
     return ((*j##T##8)(1,2,3,4,5,6,7,8));				\
 }
 #define dcl9(T)								\
 dcl8(T)									\
 T CJ##T##9(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##9));\
+    dump_args(QUOTE(CJ##T##9));\
     return ((*j##T##9)(1,2,3,4,5,6,7,8,9));				\
 }
 #define dcl10(T)							\
 dcl9(T)									\
 T CJ##T##10(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##10));\
+    dump_args(QUOTE(CJ##T##10));\
     return ((*j##T##10)(1,2,3,4,5,6,7,8,9,10));				\
 }
 #define dcl11(T)							\
 dcl10(T)								\
 T CJ##T##11(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##11));\
+    dump_args(QUOTE(CJ##T##11));\
     return ((*j##T##11)(1,2,3,4,5,6,7,8,9,10,11));			\
 }
 #define dcl12(T)							\
 dcl11(T)								\
 T CJ##T##12(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##12));\
+    dump_args(QUOTE(CJ##T##12));\
     return ((*j##T##12)(1,2,3,4,5,6,7,8,9,10,11,12));			\
 }
 #define dcl13(T)							\
 dcl12(T)								\
 T CJ##T##13(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##13));\
+    dump_args(QUOTE(CJ##T##13));\
     return ((*j##T##13)(1,2,3,4,5,6,7,8,9,10,11,12,13));		\
 }
 #define dcl14(T)							\
 dcl13(T)								\
 T CJ##T##14(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##14));\
+    dump_args(QUOTE(CJ##T##14));\
     return ((*j##T##14)(1,2,3,4,5,6,7,8,9,10,11,12,13,14));		\
 }
 #define dcl15(T)							\
 dcl14(T)								\
 T CJ##T##15(void)							\
 {									\
-    DEBUG(QUOTE(CJ##T##15));\
+    dump_args(QUOTE(CJ##T##15));\
     return ((*j##T##15)(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15));		\
 }
 #define dcl(t)	dcl15(t)
@@ -988,8 +990,6 @@ run_test(jit_state_t *_jit, uint8_t *code_base, size_t code_size)
 	(*function)();
     else
 	return size;
-
-    DEBUG("ok\n");
 
     return 0;
 }

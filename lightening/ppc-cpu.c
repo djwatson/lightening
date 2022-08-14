@@ -479,14 +479,14 @@ static void mcrxr(jit_state_t*, int32_t);
 #  define _HWSYNC()                     _SYNC(0, 0)
 
 #if __WORDSIZE == 64
-#  define _STX(r0, r1) _STD(r0, r1, 0)
-#  define _LXX(r0, r1) _LD(r0, r1, 0)
+#  define _STX(r0, r1, o) _STD(r0, r1, o)
+#  define _LXX(r0, r1, o) _LD(r0, r1, o)
 #  define _CMPX(r0, r1) _CMPD(r0, r1)
 #  define _LXARX(r0, r1) _LDARX(r0, 0, r1)
 #  define _STXCX(r0, r1) _STDCX(r0, 0, r1)
 #else
-#  define _STX(r0, r1) _STW(r0, r1, 0)
-#  define _LXX(r0, r1) _LW(r0, r1, 0)
+#  define _STX(r0, r1, o) _STW(r0, r1, o)
+#  define _LXX(r0, r1, o) _LW(r0, r1, o)
 #  define _CMPX(r0, r1) _CMPW(r0, r1)
 #  define _LXARX(r0, r1) _LWARX(r0, 0, r1)
 #  define _STXCX(r0, r1) _STWCX(r0, 0, r1)
@@ -781,7 +781,7 @@ FI(int o, int t, int a, int k)
     assert(!(t & 3) && can_sign_extend_jump_p(t));
     assert(!(a & ~(( 1 <<  1) - 1)));
     assert(!(k & ~(( 1 <<  1) - 1)));
-    instr_t ins = {.I = {.po = o, .li = _u26(t), .aa = a, .lk = k}};
+    instr_t ins = {.I = {.po = o, .li = _u26(t) >> 2, .aa = a, .lk = k}};
     return ins.w;
 }
 
@@ -794,7 +794,7 @@ FB(int o, int bo, int bi, int t, int a, int k)
     assert(!(t & 3) && can_sign_extend_short_p(t));
     assert(!(a & ~(( 1 <<  1) - 1)));
     assert(!(k & ~(( 1 <<  1) - 1)));
-    instr_t ins = {.B = {.po = o, .bo = bo, .bi = bi, .bd = _u16(t), .aa = a, .lk = k}};
+    instr_t ins = {.B = {.po = o, .bo = bo, .bi = bi, .bd = _u16(t) >> 2, .aa = a, .lk = k}};
     return ins.w;
 }
 
@@ -970,6 +970,7 @@ emit_veneer(jit_state_t *_jit, jit_pointer_t target)
 
     emit_u32(_jit, _MTCTR(rn(reg)));
     emit_u32(_jit, _BCTR());
+    emit_u32(_jit, _NOP());
     unget_temp_gpr(_jit);
 }
 
@@ -2902,24 +2903,28 @@ stxi_l(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 static void
 jmpr(jit_state_t *_jit, int32_t r0)
 {
-    em_wp(_jit, _MTCTR(r0));
-    em_wp(_jit, _BCTR());
+    emit_u32(_jit, _MTCTR(r0));
+    emit_u32(_jit, _BCTR());
+    emit_u32(_jit, _NOP());
 }
 
 static void
 jmpr_with_link(jit_state_t *_jit, int32_t r0)
 {
-    em_wp(_jit, _MTCTR(r0));
-    em_wp(_jit, _BCTRL());
+    // Some kind of linking stuff?
+    if (r0 != rn(_R12))
+        emit_u32(_jit, _MR(rn(_R12), r0));
+
+    emit_u32(_jit, _MR(rn(JIT_LR), r0));
+    emit_u32(_jit, _MTCTR(rn(_R12)));
+    emit_u32(_jit, _BCTRL());
 }
 
 static void
 jmpi_with_link(jit_state_t *_jit, jit_word_t i0)
 {
-    jit_gpr_t reg = get_temp_gpr(_jit);
-    movi(_jit, rn(reg), i0);
-    jmpr_with_link(_jit, rn(reg));
-    unget_temp_gpr(_jit);
+    movi(_jit, rn(_R12), i0);
+    jmpr_with_link(_jit, rn(_R12));
 }
 
 static void
@@ -2937,32 +2942,43 @@ jmp(jit_state_t *_jit)
     return emit_jump(_jit, _B(0));
 }
 
+static void
+build_tmp_frame(jit_state_t *_jit)
+{
+	emit_u32(_jit, _STX(rn(JIT_FP), rn(JIT_SP), 0));
+	emit_u32(_jit, _STX(rn(JIT_LR), rn(JIT_SP), 16));
+    	emit_u32(_jit, _STX(rn(_R2), rn(JIT_SP), 24));
+	emit_u32(_jit, _MR(rn(JIT_FP), rn(JIT_SP)));
+}
+
+static void
+destroy_tmp_frame(jit_state_t *_jit)
+{
+	emit_u32(_jit, _LXX(rn(JIT_FP), rn(JIT_SP), 0));
+}
+
 // Heavily assumes prepare_call_args() has been called beforehand
 static void
 callr(jit_state_t *_jit, int32_t r0)
 {
-    // Build up temporary stack frame
-    stxi_l(_jit, 0, rn(JIT_SP), rn(JIT_FP));
-    stxi_l(_jit, 16, rn(JIT_SP), rn(JIT_LR));
-    movr(_jit, rn(JIT_FP), rn(JIT_SP));
+    build_tmp_frame(_jit);
 
-    // Some kind of linking stuff?
-    movr(_jit, rn(_R12), r0);
+    if (r0 != rn(_R12))
+        emit_u32(_jit, _MR(rn(_R12), r0));
 
-    jmpr_with_link(_jit, r0);
+    emit_u32(_jit, _MTCTR(rn(_R12)));
+    emit_u32(_jit, _BCTRL());
+    emit_u32(_jit, _NOP());
 
-    // Restore previous stack frame location
-    ldxi_l(_jit, rn(JIT_FP), rn(JIT_SP), 0);
+    destroy_tmp_frame(_jit);
 }
 
 /* assume fixed address or reachable address */
 static void
 calli(jit_state_t *_jit, jit_word_t i0)
 {
-    jit_gpr_t reg = get_temp_gpr(_jit);
-    movi(_jit, rn(reg), i0);
-    callr(_jit, rn(reg));
-    unget_temp_gpr(_jit);
+    movi(_jit, rn(_R12), i0);
+    callr(_jit, rn(_R12));
 }
 
 static void
@@ -3044,7 +3060,7 @@ ldr_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
     // TODO long vs int?
     emit_u32(_jit, _HWSYNC());
-    emit_u32(_jit, _LXX(r0, r1));
+    emit_u32(_jit, _LXX(r0, r1, 0));
     emit_u32(_jit, _CMPX(r0, r0));
     jit_reloc_t w = emit_cc_jump(_jit, _BNE(0));
     jit_patch_here(_jit, w);
@@ -3055,7 +3071,7 @@ static void
 str_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
     emit_u32(_jit, _HWSYNC());
-    emit_u32(_jit, _STX(r1, r0));
+    emit_u32(_jit, _STX(r1, r0, 0));
 }
 
 static void
