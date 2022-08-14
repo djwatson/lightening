@@ -175,11 +175,19 @@
 #define _lsh(N)							\
 	alu2(lsh, L##N, 1, N, (1L<<N))
 
+#if __WORDSIZE == 64
 #define _rsh(N)							\
 	alu2(rsh, R##N, (1L<<63), N, ((1L<<63)>>N))
 
 #define _rush(N)						\
 	alu2(rsh_u, R##N, (1UL<<63), N, ((1UL<<63)>>N))
+#else
+#define _rsh(N)							\
+	alu2(rsh, R##N, (1L<<31), N, ((1L<<31)>>N))
+
+#define _rush(N)						\
+	alu2(rsh_u, R##N, (1UL<<31), N, ((1UL<<31)>>N))
+#endif
 
 #if __WORDSIZE == 32
 #  define xsh64(X)			/**/

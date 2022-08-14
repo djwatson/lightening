@@ -193,6 +193,8 @@
 #define JIT_PLATFORM_CALLEE_SAVE_GPRS _SP, _FP, _RA
 #endif
 
+#define JIT_PLATFORM_CALLEE_SAVE_FPRS
+
 #define JIT_JMP_MAX_SIZE (sizeof(uint32_t) * 2)
 
 #if __WORDSIZE == 64

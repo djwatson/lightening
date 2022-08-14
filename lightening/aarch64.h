@@ -164,5 +164,7 @@
 #define _LR _X30
 #define _SP _X31
 
+#define JIT_PLATFORM_CALLEE_SAVE_FPRS
+
 
 #endif /* _jit_aarch64_h */
