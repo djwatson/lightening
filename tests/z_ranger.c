@@ -565,9 +565,12 @@ run_test(jit_state_t *_jit, uint8_t *arena_base, size_t arena_size)
 
 	if (function)
 		(*function)();
-	else
+	else {
+		free(buf);
 		return size;
+	}
 
+	free(buf);
 	return 0;
 }
 
