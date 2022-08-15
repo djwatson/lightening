@@ -3050,15 +3050,13 @@ retval_l(jit_state_t *_jit, int32_t r0)
 }
 #endif
 
-// TODO: atomics
 static void
 ldr_atomic(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    // TODO long vs int?
     emit_u32(_jit, _HWSYNC());
     emit_u32(_jit, _LXX(r0, r1, 0));
     emit_u32(_jit, _CMPX(r0, r0));
-    jit_reloc_t w = emit_cc_jump(_jit, _BNE(0));
+    jit_reloc_t w = emit_atomic_jump(_jit, _BNE(0));
     jit_patch_here(_jit, w);
     emit_u32(_jit, _ISYNC());
 }

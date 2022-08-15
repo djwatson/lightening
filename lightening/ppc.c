@@ -24,8 +24,6 @@
 
 # define rn(x) jit_gpr_regno(x)
 
-#define jit_arg_reg_p(i)		((i) >= 0 && (i) < 8)
-#define jit_arg_f_reg_p(i)		((i) >= 0 && (i) < 13)
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #  define C_DISP			0
 #  define S_DISP			0
@@ -59,7 +57,6 @@ extern void __clear_cache(void *, void *);
 
 #define em_wp(_jit, x) emit_u32_with_pool(_jit, (x))
 
-// TODO fill in
 typedef union {
 #if __BYTE_ORDER == __BIG_ENDIAN
 	struct {
