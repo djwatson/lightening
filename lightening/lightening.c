@@ -824,6 +824,8 @@ abi_gpr_to_mem(jit_state_t *_jit, enum jit_operand_abi abi,
   // load operands from the stack via a full-word read, so we need to make sure
   // we don't leave garbage in the high bytes of (for example) the stack slot
   // for a uint8_t arg.
+  // This means that if you want to move all arguments into an array as the
+  // first thing the function does, each element needs to be max alignment size.
   switch (abi) {
   case JIT_OPERAND_ABI_UINT8:
   case JIT_OPERAND_ABI_INT8:
