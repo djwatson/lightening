@@ -528,7 +528,7 @@ run_test(jit_state_t *_jit, uint8_t *arena_base, size_t arena_size)
 
 	void (*function)(void);
 
-	char *buf = malloc(M64 + 6);
+	char *buf = malloc(M64 + 8);
 	ASSERT(buf);
 
 	alu(add)

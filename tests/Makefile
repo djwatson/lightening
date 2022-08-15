@@ -33,6 +33,14 @@ all: $(foreach TARGET,$(TARGETS),$(addprefix test-$(TARGET)-,$(TESTS)))
 
 check: $(addprefix test-$(TARGET),$(TARGETS))
 
+test-vg-%: $(addprefix test-%-,$(TESTS))
+	@echo "Running unit tests..."
+	@set -e; for test in $?; do \
+	  echo "Testing: $$test"; \
+	  valgrind -q --error-exitcode=1 ./$$test; \
+	done
+	@echo "Success."
+
 test-%: $(addprefix test-%-,$(TESTS))
 	@echo "Running unit tests..."
 	@set -e; for test in $?; do \
