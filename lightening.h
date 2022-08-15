@@ -79,6 +79,10 @@ jit_same_fprs (jit_fpr_t a, jit_fpr_t b)
 #  include "lightening/s390.h"
 #endif
 
+#ifndef JIT_EXTRA_SPACE
+#define JIT_EXTRA_SPACE 0
+#endif
+
 #ifndef JIT_JMP_MAX_SIZE
 #define JIT_JMP_MAX_SIZE sizeof(uint32_t)
 #endif
