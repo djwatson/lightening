@@ -970,7 +970,6 @@ emit_veneer(jit_state_t *_jit, jit_pointer_t target)
 
     emit_u32(_jit, _MTCTR(rn(reg)));
     emit_u32(_jit, _BCTR());
-    emit_u32(_jit, _NOP());
     unget_temp_gpr(_jit);
 }
 
@@ -1218,7 +1217,6 @@ extr_us(jit_state_t *_jit, int32_t r0, int32_t r1)
     em_wp(_jit, _ANDI_(r0, r1, 0xffff));
 }
 
-#  if __BYTE_ORDER == __LITTLE_ENDIAN
 static void
 bswapr_us(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
@@ -1242,7 +1240,7 @@ bswapr_ui(jit_state_t *_jit, int32_t r0, int32_t r1)
     unget_temp_gpr(_jit);
 }
 
-#    if __WORDSIZE == 64
+#if __WORDSIZE == 64
 static void
 bswapr_ul(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
@@ -1254,8 +1252,7 @@ bswapr_ul(jit_state_t *_jit, int32_t r0, int32_t r1)
     orr(_jit, r0, r0, rn(reg));
     unget_temp_gpr(_jit);
 }
-#    endif
-#  endif
+#endif
 
 static void
 addr(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
@@ -2905,7 +2902,6 @@ jmpr(jit_state_t *_jit, int32_t r0)
 {
     emit_u32(_jit, _MTCTR(r0));
     emit_u32(_jit, _BCTR());
-    emit_u32(_jit, _NOP());
 }
 
 static void
@@ -2954,6 +2950,7 @@ build_tmp_frame(jit_state_t *_jit)
 static void
 destroy_tmp_frame(jit_state_t *_jit)
 {
+    	emit_u32(_jit, _LXX(rn(_R2), rn(JIT_SP), 24));
 	emit_u32(_jit, _LXX(rn(JIT_FP), rn(JIT_SP), 0));
 }
 
@@ -2968,7 +2965,6 @@ callr(jit_state_t *_jit, int32_t r0)
 
     emit_u32(_jit, _MTCTR(rn(_R12)));
     emit_u32(_jit, _BCTRL());
-    emit_u32(_jit, _NOP());
 
     destroy_tmp_frame(_jit);
 }
