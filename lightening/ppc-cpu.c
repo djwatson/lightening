@@ -482,12 +482,18 @@ static void mcrxr(jit_state_t*, int32_t);
 #  define _STX(r0, r1, o) _STD(r0, r1, o)
 #  define _LXX(r0, r1, o) _LD(r0, r1, o)
 #  define _CMPX(r0, r1) _CMPD(r0, r1)
+#  define _CMPXI(r0, i0) _CMPDI(r0, i0)
+#  define _CMPLX(r0, r1) _CMPLD(r0, r1)
+#  define _CMPLXI(r0, u0) _CMPLDI(r0, u0)
 #  define _LXARX(r0, r1) _LDARX(r0, 0, r1)
 #  define _STXCX(r0, r1) _STDCX(r0, 0, r1)
 #else
 #  define _STX(r0, r1, o) _STW(r0, r1, o)
 #  define _LXX(r0, r1, o) _LW(r0, r1, o)
 #  define _CMPX(r0, r1) _CMPW(r0, r1)
+#  define _CMPXI(r0, i0) _CMPWI(r0, i0)
+#  define _CMPLX(r0, r1) _CMPLW(r0, r1)
+#  define _CMPLXI(r0, u0) _CMPLWI(r0, u0)
 #  define _LXARX(r0, r1) _LWARX(r0, 0, r1)
 #  define _STXCX(r0, r1) _STWCX(r0, 0, r1)
 #endif
@@ -1723,7 +1729,7 @@ rshi_u(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 static jit_reloc_t
 bltr(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPW(r0, r1));
+    em_wp(_jit, _CMPX(r0, r1));
     return emit_cc_jump(_jit, _BLT(0));
 }
 
@@ -1731,11 +1737,11 @@ static jit_reloc_t
 blti(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_sign_extend_short_p(i1)) {
-	em_wp(_jit, _CMPWI(r0, i1));
+	em_wp(_jit, _CMPXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPW(r0, rn(reg)));
+	em_wp(_jit, _CMPX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
 
@@ -1745,7 +1751,7 @@ blti(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 bltr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPLW(r0, r1));
+    em_wp(_jit, _CMPLX(r0, r1));
     return emit_cc_jump(_jit, _BLT(0));
 }
 
@@ -1753,11 +1759,11 @@ static jit_reloc_t
 blti_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_zero_extend_short_p(i1)) {
-	em_wp(_jit, _CMPLWI(r0, i1));
+	em_wp(_jit, _CMPLXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPLW(r0, rn(reg)));
+	em_wp(_jit, _CMPLX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
 
@@ -1767,7 +1773,7 @@ blti_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 bler(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPW(r0, r1));
+    em_wp(_jit, _CMPX(r0, r1));
     return emit_cc_jump(_jit, _BLE(0));
 }
 
@@ -1775,11 +1781,11 @@ static jit_reloc_t
 blei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_sign_extend_short_p(i1)) {
-	em_wp(_jit, _CMPWI(r0, i1));
+	em_wp(_jit, _CMPXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPW(r0, rn(reg)));
+	em_wp(_jit, _CMPX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
 
@@ -1789,7 +1795,7 @@ blei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 bler_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPLW(r0, r1));
+    em_wp(_jit, _CMPLX(r0, r1));
     return emit_cc_jump(_jit, _BLE(0));
 }
 
@@ -1797,11 +1803,11 @@ static jit_reloc_t
 blei_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_zero_extend_short_p(i1)) {
-	em_wp(_jit, _CMPLWI(r0, i1));
+	em_wp(_jit, _CMPLXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPLW(r0, rn(reg)));
+	em_wp(_jit, _CMPLX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
 
@@ -1811,7 +1817,7 @@ blei_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 beqr(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPW(r0, r1));
+    em_wp(_jit, _CMPX(r0, r1));
     return emit_cc_jump(_jit, _BEQ(0));
 }
 
@@ -1819,13 +1825,13 @@ static jit_reloc_t
 beqi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_sign_extend_short_p(i1)) {
-	em_wp(_jit, _CMPWI(r0, i1));
+	em_wp(_jit, _CMPXI(r0, i1));
     } else if (can_zero_extend_short_p(i1)) {
-	em_wp(_jit, _CMPLWI(r0, i1));
+	em_wp(_jit, _CMPLXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPW(r0, rn(reg)));
+	em_wp(_jit, _CMPX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
 
@@ -1835,7 +1841,7 @@ beqi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 bger(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPW(r0, r1));
+    em_wp(_jit, _CMPX(r0, r1));
     return emit_cc_jump(_jit, _BGE(0));
 }
 
@@ -1843,11 +1849,11 @@ static jit_reloc_t
 bgei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_sign_extend_short_p(i1)) {
-	em_wp(_jit, _CMPWI(r0, i1));
+	em_wp(_jit, _CMPXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPW(r0, rn(reg)));
+	em_wp(_jit, _CMPX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
 
@@ -1857,7 +1863,7 @@ bgei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 bger_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPLW(r0, r1));
+    em_wp(_jit, _CMPLX(r0, r1));
     return emit_cc_jump(_jit, _BGE(0));
 }
 
@@ -1865,11 +1871,11 @@ static jit_reloc_t
 bgei_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_zero_extend_short_p(i1)) {
-	em_wp(_jit, _CMPLWI(r0, i1));
+	em_wp(_jit, _CMPLXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPLW(r0, rn(reg)));
+	em_wp(_jit, _CMPLX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
     return emit_cc_jump(_jit, _BGE(0));
@@ -1878,7 +1884,7 @@ bgei_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 bgtr(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPW(r0, r1));
+    em_wp(_jit, _CMPX(r0, r1));
     return emit_cc_jump(_jit, _BGT(0));
 }
 
@@ -1886,11 +1892,11 @@ static jit_reloc_t
 bgti(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_sign_extend_short_p(i1)) {
-	em_wp(_jit, _CMPWI(r0, i1));
+	em_wp(_jit, _CMPXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPW(r0, rn(reg)));
+	em_wp(_jit, _CMPX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
     return emit_cc_jump(_jit, _BGT(0));
@@ -1899,7 +1905,7 @@ bgti(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 bgtr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPLW(r0, r1));
+    em_wp(_jit, _CMPLX(r0, r1));
     return emit_cc_jump(_jit, _BGT(0));
 }
 
@@ -1907,11 +1913,11 @@ static jit_reloc_t
 bgti_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_zero_extend_short_p(i1)) {
-	em_wp(_jit, _CMPLWI(r0, i1));
+	em_wp(_jit, _CMPLXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPLW(r0, rn(reg)));
+	em_wp(_jit, _CMPLX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
 
@@ -1921,7 +1927,7 @@ bgti_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 static jit_reloc_t
 bner(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-    em_wp(_jit, _CMPW(r0, r1));
+    em_wp(_jit, _CMPX(r0, r1));
     return emit_cc_jump(_jit, _BNE(0));
 }
 
@@ -1929,13 +1935,13 @@ static jit_reloc_t
 bnei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
     if (can_sign_extend_short_p(i1)) {
-	em_wp(_jit, _CMPWI(r0, i1));
+	em_wp(_jit, _CMPXI(r0, i1));
     } else if (can_zero_extend_short_p(i1)) {
-	em_wp(_jit, _CMPLWI(r0, i1));
+	em_wp(_jit, _CMPLXI(r0, i1));
     } else {
 	jit_gpr_t reg = get_temp_gpr(_jit);
 	movi(_jit, rn(reg), i1);
-	em_wp(_jit, _CMPW(r0, rn(reg)));
+	em_wp(_jit, _CMPX(r0, rn(reg)));
 	unget_temp_gpr(_jit);
     }
 
