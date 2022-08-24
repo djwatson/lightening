@@ -123,9 +123,9 @@
 #define JIT_V11 _R25
 #define JIT_V12 _R26
 #define JIT_V13 _R27
-#define JIT_V14 _R28
+#define JIT_TMP0 _R28
 #define JIT_TMP1 _R29
-#define JIT_TMP0 _R30
+#define JIT_TMP2 _R30
 
 #define JIT_FP _R31
 #define JIT_SP _R1
@@ -168,7 +168,7 @@
 
 #define JIT_LR _R0
 
-#define JIT_PLATFORM_CALLEE_SAVE_GPRS _R0, JIT_SP, JIT_FP, JIT_TMP0, JIT_TMP1
+#define JIT_PLATFORM_CALLEE_SAVE_GPRS _R0, JIT_SP, JIT_FP, JIT_TMP0, JIT_TMP1, JIT_TMP2
 #define JIT_PLATFORM_CALLEE_SAVE_FPRS
 
 // At most, we need MTCTR & BCTR, so two instructions per jump.
