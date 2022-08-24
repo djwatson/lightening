@@ -213,7 +213,7 @@ jit_has_overflow(jit_state_t *_jit)
 void
 jit_reset(jit_state_t *_jit)
 {
-  ASSERT (_jit->start);
+  ASSERT (_jit);
   _jit->pc.uc = _jit->start = _jit->limit = NULL;
   _jit->overflow = 0;
   _jit->frame_size = 0;
