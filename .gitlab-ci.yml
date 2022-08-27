@@ -61,3 +61,10 @@ mips64el:
     - apt-get update -qq
     - apt-get install -y gcc-mips64el-linux-gnuabi64 libc6-dev-mips64el-cross libc6:mips64el
     - make -C tests test-mips64el CC_MIPS64EL="mips64el-linux-gnuabi64-gcc"
+
+ppc64el:
+  stage: test
+  script:
+    - dpkg --add-architecture ppc64el
+    - apt-get update -qq
+    - apt-get install -y gcc-powerpc64le-linux-gnu libc6-dev-ppc64el-cross libc6:ppc64el
