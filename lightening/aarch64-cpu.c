@@ -1378,7 +1378,7 @@ bltr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-blti(jit_state_t *_jit, int32_t r0, int32_t i1)
+blti(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_LT,r0,i1);
 }
@@ -1390,7 +1390,7 @@ bltr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-blti_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+blti_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_CC,r0,i1);
 }
@@ -1402,7 +1402,7 @@ bler(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-blei(jit_state_t *_jit, int32_t r0, int32_t i1)
+blei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_LE,r0,i1);
 }
@@ -1414,7 +1414,7 @@ bler_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-blei_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+blei_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_LS,r0,i1);
 }
@@ -1432,7 +1432,7 @@ bger(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bgei(jit_state_t *_jit, int32_t r0, int32_t i1)
+bgei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_GE,r0,i1);
 }
@@ -1444,7 +1444,7 @@ bger_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bgei_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bgei_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_CS,r0,i1);
 }
@@ -1456,7 +1456,7 @@ bgtr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bgti(jit_state_t *_jit, int32_t r0, int32_t i1)
+bgti(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_GT,r0,i1);
 }
@@ -1468,7 +1468,7 @@ bgtr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bgti_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bgti_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_HI,r0,i1);
 }
@@ -1600,7 +1600,7 @@ boaddr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-boaddi(jit_state_t *_jit, int32_t r0, int32_t i1)
+boaddi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return baddi(_jit,BCC_VS,r0,i1);
 }
@@ -1612,7 +1612,7 @@ boaddr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-boaddi_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+boaddi_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return baddi(_jit,BCC_HS,r0,i1);
 }
@@ -1624,7 +1624,7 @@ bxaddr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bxaddi(jit_state_t *_jit, int32_t r0, int32_t i1)
+bxaddi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return baddi(_jit,BCC_VC,r0,i1);
 }
@@ -1636,7 +1636,7 @@ bxaddr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bxaddi_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bxaddi_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return baddi(_jit,BCC_LO,r0,i1);
 }
@@ -1662,7 +1662,7 @@ bosubr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bosubi(jit_state_t *_jit, int32_t r0, int32_t i1)
+bosubi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bsubi(_jit,BCC_VS,r0,i1);
 }
@@ -1674,7 +1674,7 @@ bosubr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bosubi_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bosubi_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bsubi(_jit,BCC_LO,r0,i1);
 }
@@ -1686,7 +1686,7 @@ bxsubr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bxsubi(jit_state_t *_jit, int32_t r0, int32_t i1)
+bxsubi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bsubi(_jit,BCC_VC,r0,i1);
 }
@@ -1698,7 +1698,7 @@ bxsubr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bxsubi_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bxsubi_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bsubi(_jit,BCC_HS,r0,i1);
 }
@@ -1733,7 +1733,7 @@ bmsr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bmsi(jit_state_t *_jit, int32_t r0, int32_t i1)
+bmsi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bmxi(_jit,BCC_NE,r0,i1);
 }
@@ -1745,7 +1745,7 @@ bmcr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bmci(jit_state_t *_jit, int32_t r0, int32_t i1)
+bmci(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bmxi(_jit,BCC_EQ,r0,i1);
 }
