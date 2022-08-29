@@ -477,7 +477,7 @@ run_test(jit_state_t *_jit, uint8_t *arena_base, size_t arena_size)
 {
 	void (*function)();
 	jit_begin(_jit, arena_base, arena_size);
-	size_t frame = jit_enter_jit_abi(_jit, 0, 0, 0);
+	size_t frame = jit_enter_jit_abi(_jit, 3, 0, 0);
 
 	ARGBS();
 	MBGS();
@@ -564,7 +564,7 @@ run_test(jit_state_t *_jit, uint8_t *arena_base, size_t arena_size)
 		jit_patch_here(_jit, r);
 	}
 
-	jit_leave_jit_abi(_jit, 0, 0, frame);
+	jit_leave_jit_abi(_jit, 3, 0, frame);
 	jit_ret(_jit);
 
 	size_t size;
