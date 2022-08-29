@@ -59,7 +59,7 @@
 #define fill_us		fill_s
 #define fill_ui		fill_i
 
-#define ARG(  T, N) jit_operand_mem(operand##T, JIT_SP, - ((N + 1) * szof_max))
+#define ARG(  T, N) jit_operand_mem(operand##T, JIT_SP, - ((N + 1) * szof##T))
 
 #define ARG1( K, T)			ARG##K(T, 0)
 #define ARG2( K, T)	ARG1( K, T),	ARG##K(T, 1)
@@ -89,7 +89,7 @@
 
 #define CHK(N, T, V)								\
 {										\
-	jit_ldxi##T(_jit, JIT_R0, JIT_SP, arg_space - ((V + 1) * szof_max));	\
+	jit_ldxi##T(_jit, JIT_R0, JIT_SP, arg_space - ((V + 1) * szof##T));	\
 	jit_ldxi##T(_jit, JIT_R1, JIT_V0, (V * szof##T));			\
 	jit_reloc_t r = jit_beqr(_jit, JIT_R0, JIT_R1);				\
 	jit_calli_0(_jit, abort);						\
@@ -184,7 +184,7 @@
 	 ARG##T(N)};						\
 	jit_load_args(_jit, N + 1, args);			\
 								\
-	size_t arg_space = jit_align_stack(_jit, N * szof_max);	\
+	size_t arg_space = jit_align_stack(_jit, N * szof##T);	\
 								\
 	dump_args(N, M, T);					\
 								\
@@ -319,7 +319,7 @@ run_test(jit_state_t *_jit, uint8_t *arena_base, size_t arena_size)
 {
 	jit_begin(_jit, arena_base, arena_size);
 	int32_t (*function)();
-	
+
 	jit_reloc_t main = jit_jmp(_jit);
 
 	FILL(_c)
