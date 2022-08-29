@@ -2025,7 +2025,7 @@ stxi_c(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 {
   if (can_sign_extend_int_p(i0)) {
     if (reg8_p(r1)) {
-      rex(_jit, 0, 0, r1, _NOREG, r0);
+      rex(_jit, 1, 0, r1, _NOREG, r0);
       ic(_jit, 0x88);
       rx(_jit, r1, i0, r0, _NOREG, _SCL1);
     } else {
