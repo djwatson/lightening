@@ -498,7 +498,7 @@ movi_f(jit_state_t * _jit, int32_t r0, jit_float32_t i0)
   union {
     int32_t i;
     jit_float32_t f;
-  } u = {.f = i0 };
+  } u = {.f = i0};
   jit_gpr_t t0 = get_temp_gpr(_jit);
   movi(_jit, rn(t0), u.i);
   em_wp(_jit, _MTC1(rn(t0), r0));
@@ -726,12 +726,12 @@ movi_d(jit_state_t * _jit, int32_t r0, jit_float64_t i0)
       int32_t h;
     } i;
     jit_float64_t d;
-  } data = {.d = i0 };
+  } data = {.d = i0};
 
   jit_gpr_t t0 = get_temp_gpr(_jit);
 #if __WORDSIZE == 64
   movi(_jit, rn(t0), data.l);
-  em_wp(_jit, _DMTC1(r0, rn(t0)));
+  em_wp(_jit, _DMTC1(rn(t0), r0));
 #else
   if (data.i.l) {
     movi(_jit, rn(t0), data.i.l);

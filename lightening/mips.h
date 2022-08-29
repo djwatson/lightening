@@ -152,14 +152,14 @@
 
 #define JIT_F0		_F0
 #define JIT_F1		_F2
-#define JIT_F2		_F4
-#define JIT_F3		_F6
-#define JIT_F4		_F8
-#define JIT_F5		_F10
-#define JIT_F6		_F12
-#define JIT_F7		_F14
-#define JIT_F8		_F16
-#define JIT_FTMP	_F18
+#define JIT_F2		_F6
+#define JIT_F3		_F8
+#define JIT_F4		_F10
+#define JIT_F5		_F12
+#define JIT_F6		_F14
+#define JIT_F7		_F16
+#define JIT_F8		_F18
+#define JIT_FTMP	_F4
 
 #if NEW_ABI
 #define JIT_F9		_F20
