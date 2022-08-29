@@ -79,6 +79,10 @@ jit_same_fprs (jit_fpr_t a, jit_fpr_t b)
 #  include "lightening/s390.h"
 #endif
 
+#ifndef JIT_CALL_STACK_ALIGN_WORD
+#define JIT_CALL_STACK_ALIGN_WORD 1
+#endif
+
 enum jit_reloc_kind
 {
   JIT_RELOC_ABSOLUTE,

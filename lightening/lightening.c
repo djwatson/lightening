@@ -75,6 +75,7 @@ struct jit_state
   uint8_t temp_fpr_saved;
   uint8_t overflow;
   uint8_t emitting_data;
+  uint8_t preparing_call;
   int frame_size; // Used to know when to align stack.
 #ifdef JIT_NEEDS_LITERAL_POOL
   struct jit_literal_pool *pool;
@@ -718,8 +719,8 @@ abi_imm_to_gpr(jit_state_t *_jit, enum jit_operand_abi abi, jit_gpr_t dst,
 }
 
 static void
-abi_gpr_to_mem(jit_state_t *_jit, enum jit_operand_abi abi,
-               jit_gpr_t base, ptrdiff_t offset, jit_gpr_t src)
+abi_gpr_to_mem_walign(jit_state_t *_jit, enum jit_operand_abi abi,
+                      jit_gpr_t base, ptrdiff_t offset, jit_gpr_t src)
 {
   // Invariant: GPR memory destination operand sizes are rounded up to words.
   // True for ARM, AArch64, IA32, and X86-64.  Some ABIs expect to be able to
@@ -752,6 +753,56 @@ abi_gpr_to_mem(jit_state_t *_jit, enum jit_operand_abi abi,
   default:
     abort();
   }
+}
+
+static void
+abi_gpr_to_mem_nalign(jit_state_t *_jit, enum jit_operand_abi abi,
+                      jit_gpr_t base, ptrdiff_t offset, jit_gpr_t src)
+{
+  switch (abi) {
+  case JIT_OPERAND_ABI_UINT8:
+  case JIT_OPERAND_ABI_INT8:
+    jit_stxi_c(_jit, offset, base, src);
+    break;
+  case JIT_OPERAND_ABI_UINT16:
+  case JIT_OPERAND_ABI_INT16:
+    jit_stxi_s(_jit, offset, base, src);
+    break;
+#if __WORDSIZE == 32
+  case JIT_OPERAND_ABI_UINT32:
+  case JIT_OPERAND_ABI_POINTER:
+#endif
+  case JIT_OPERAND_ABI_INT32:
+    jit_stxi_i(_jit, offset, base, src);
+    break;
+#if __WORDSIZE == 64
+  case JIT_OPERAND_ABI_UINT32:
+    jit_stxi_i(_jit, offset, base, src);
+    break;
+  case JIT_OPERAND_ABI_UINT64:
+  case JIT_OPERAND_ABI_POINTER:
+  case JIT_OPERAND_ABI_INT64:
+    jit_stxi_l(_jit, offset, base, src);
+    break;
+#endif
+#if JIT_PASS_FLOATS_IN_GPRS
+  case JIT_OPERAND_ABI_FLOAT:
+    jit_stxi_w(_jit, offset, base, src);
+    break;
+#endif
+  default:
+    abort();
+  }
+}
+
+static void
+abi_gpr_to_mem(jit_state_t *_jit, enum jit_operand_abi abi,
+               jit_gpr_t base, ptrdiff_t offset, jit_gpr_t src)
+{
+  if (JIT_CALL_STACK_ALIGN_WORD && _jit->preparing_call)
+    abi_gpr_to_mem_walign(_jit, abi, base, offset, src);
+  else
+    abi_gpr_to_mem_nalign(_jit, abi, base, offset, src);
 }
 
 static void
@@ -911,7 +962,6 @@ move_operand(jit_state_t *_jit, jit_operand_t dst, jit_operand_t src)
   case MOVE_MEM_TO_MEM:
     return abi_mem_to_mem(_jit, src.abi, dst.loc.mem.base, dst.loc.mem.offset,
                           src.loc.mem.base, src.loc.mem.offset);
-
   default:
     abort();
   }
@@ -1238,9 +1288,10 @@ jit_leave_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
 static size_t
 prepare_call_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 {
+  _jit->preparing_call = 1;
   jit_operand_t dst[argc];
   struct abi_arg_iterator iter;
-  
+
   // Compute shuffle destinations and space for spilled arguments.
   reset_abi_arg_iterator(&iter, argc, args);
   for (size_t i = 0; i < argc; i++)
@@ -1267,6 +1318,7 @@ prepare_call_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 
   jit_move_operands(_jit, dst, args, argc);
 
+  _jit->preparing_call = 0;
   return stack_size;
 }
 
@@ -1294,7 +1346,6 @@ void
 jit_locate_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 {
   struct abi_arg_iterator iter;
-    
   reset_abi_arg_iterator(&iter, argc, args);
   iter.stack_size += _jit->frame_size;
   for (size_t i = 0; i < argc; i++)
