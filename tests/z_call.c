@@ -168,17 +168,17 @@
 #define uf81		 127.0
 
 #if __WORDSIZE == 32
-#  define wc80		0xffffff80L
-#  define wc81		0xffffff81L
-#  define ws80		0xffff8000L
-#  define ws81		0xffff8001L
+#  define wc80		(long)0xffffff80
+#  define wc81		(long)0xffffff81
+#  define ws80		(long)0xffff8000
+#  define ws81		(long)0xffff8001
 #else
-#  define wc80		0xffffffffffffff80L
-#  define wc81		0xffffffffffffff81L
-#  define ws80		0xffffffffffff8000L
-#  define ws81		0xffffffffffff8001L
-#  define wi80		0xffffffff80000000L
-#  define wi81		0xffffffff80000001L
+#  define wc80		(long)0xffffffffffffff80
+#  define wc81		(long)0xffffffffffffff81
+#  define ws80		(long)0xffffffffffff8000
+#  define ws81		(long)0xffffffffffff8001
+#  define wi80		(long)0xffffffff80000000
+#  define wi81		(long)0xffffffff80000001
 #endif
 
 static size_t
