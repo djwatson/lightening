@@ -1025,7 +1025,7 @@ static size_t
 run_test(jit_state_t *_jit, uint8_t *arena_base, size_t arena_size)
 {
 	jit_begin(_jit, arena_base, arena_size);
-	size_t frame = jit_enter_jit_abi(_jit, 0, 0, 0);
+	size_t frame = jit_enter_jit_abi(_jit, 3, 0, 0);
 
 	void (*function)(void);
 
@@ -1122,7 +1122,7 @@ run_test(jit_state_t *_jit, uint8_t *arena_base, size_t arena_size)
 	 jmpf(__LINE__, ord,         0, 0)
 	 jmpf(__LINE__, unord,       0, (0.0 / 0.0))
 
-	jit_leave_jit_abi(_jit, 0, 0, frame);	
+	jit_leave_jit_abi(_jit, 3, 0, frame);
 	jit_ret(_jit);
 
 	size_t size = 0;
