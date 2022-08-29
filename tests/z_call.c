@@ -55,7 +55,7 @@
 	jit_load_args_1(_jit, jit_operand_fpr(operand##f, JIT_F0));	\
 	jit_extr##f##g(_jit, JIT_F0, JIT_F0);				\
 	jit_leave_jit_abi(_jit, 0, 0, frame);				\
-	jit_retr##f(_jit, JIT_F0);					\
+	jit_retr##g(_jit, JIT_F0);					\
 }
 
 #if defined(DEBUG)
