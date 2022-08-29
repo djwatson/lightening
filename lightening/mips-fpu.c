@@ -686,7 +686,7 @@ ldxi_ww(jit_state_t * _jit, int32_t r0, int32_t r1, int32_t r2,
 static void
 movr_f_w(jit_state_t * _jit, int32_t r0, int32_t r1)
 {
-  em_wp(_jit, _MTC1(r0, r1));
+  em_wp(_jit, _MTC1(r1, r0));
 }
 
 static void

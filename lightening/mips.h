@@ -70,7 +70,7 @@
 #define _T9		JIT_GPR(25)
 
 /*
- * k0-k1 reserved for kernel usage 
+ * k0-k1 reserved for kernel usage
  */
 
 #define _GP		JIT_GPR(28)
@@ -166,15 +166,7 @@
 #define JIT_F10		_F22
 #else
 #define JIT_VF4		_F20
-
-#if NEW_ABI
-#define JIT_F9		_F20
-#define JIT_F10		_F22
-#else
-#define JIT_VF4		_F20
-#define JIT_VF6		_F22
-#endif
-#define JIT_VF6		_F22
+#define JIT_VF5		_F22
 #endif
 
 #define JIT_VF0		_F24
@@ -186,7 +178,7 @@
 /*
  * _RA is in some documents referred to as caller-save, but storing it in
  * the function stack frame works equally well, which is what we do here
- * (gcc apparently does this) 
+ * (gcc apparently does this)
  */
 #define JIT_PLATFORM_CALLEE_SAVE_GPRS _SP, _FP, _GP, _RA
 #else
@@ -202,6 +194,5 @@
 #endif
 
 #define JIT_INST_MAX_SIZE JIT_JMP_MAX_SIZE
-
 
 #endif				/* _jit_mips_h */

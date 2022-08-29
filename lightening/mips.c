@@ -159,7 +159,7 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t * arg)
   iter->stack_size += 8;
 #else
   /*
-   * O32 argument passing is a bit of a mess 
+   * O32 argument passing is a bit of a mess
    */
   iter->arg_idx++;
   if (is_gpr_arg(abi) && iter->gpr_idx < abi_gpr_arg_count) {
@@ -169,18 +169,17 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t * arg)
     return;
   }
 
-  if (is_fpr_arg(abi) && iter->gpr_idx <= 2) {
+  if (is_fpr_arg(abi) && iter->gpr_idx <= 3) {
     if (abi == JIT_OPERAND_ABI_DOUBLE && iter->gpr_idx % 2 != 0)
       iter->gpr_idx++;
 
-    if (!iter->gpr_used)
+    if (!iter->gpr_used && iter->fpr_idx < abi_fpr_arg_count)
       *arg = jit_operand_fpr(abi, abi_fpr_args[iter->fpr_idx]);
     else if (abi == JIT_OPERAND_ABI_FLOAT) {
       *arg = jit_operand_gpr(abi, abi_gpr_args[iter->gpr_idx]);
     } else {
       *arg = jit_operand_gpr_pair(abi,
-				  abi_gpr_args[iter->gpr_idx +
-					       0],
+				  abi_gpr_args[iter->gpr_idx + 0],
 				  abi_gpr_args[iter->gpr_idx + 1]);
     }
 
@@ -190,8 +189,11 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t * arg)
   }
 
   size_t abi_size = jit_operand_abi_sizeof(abi);
+  abi_size = jit_align_up(abi_size, 4);
+
   iter->stack_size = jit_align_up(iter->stack_size, abi_size);
   *arg = jit_operand_mem(abi, JIT_SP, iter->stack_size);
+
   iter->stack_size += abi_size;
 #endif
 
