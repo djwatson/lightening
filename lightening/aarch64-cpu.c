@@ -959,8 +959,13 @@ emit_veneer(jit_state_t *_jit, jit_pointer_t target)
 static void
 movr(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-  if (r0 != r1)
-    MOV(_jit, r0, r1);
+  if (r0 != r1) {
+    // Stack pointer requires special handling
+    if (r1 == jit_gpr_regno(_X31) || r0 == jit_gpr_regno(_X31))
+        ADDI(_jit, r0, r1, 0);
+    else
+        MOV(_jit, r0, r1);
+  }
 }
 
 static void
