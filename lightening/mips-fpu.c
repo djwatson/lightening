@@ -16,8 +16,6 @@
  * Authors:
  *      Paulo Cesar Pereira de Andrade
  */
-#define BE_P			(__BYTE_ORDER == __BIG_ENDIAN)
-#define LE_P			(__BYTE_ORDER == __LITTLE_ENDIAN)
 #define FMT_S			0x10	/* float32 */
 #define FMT_D			0x11	/* float64 */
 #define FMT_W			0x14	/* int32 */
@@ -735,15 +733,15 @@ movi_d(jit_state_t * _jit, int32_t r0, jit_float64_t i0)
 #else
   if (data.i.l) {
     movi(_jit, rn(t0), data.i.l);
-    em_wp(_jit, _MTC1(rn(t0), r0 + BE_P));
+    em_wp(_jit, _MTC1(rn(t0), r0));
   } else
-    em_wp(_jit, _MTC1(rn(_ZERO), r0 + BE_P));
+    em_wp(_jit, _MTC1(rn(_ZERO), r0));
 
   if (data.i.h) {
     movi(_jit, rn(t0), data.i.h);
-    em_wp(_jit, _MTC1(rn(t0), r0 + LE_P));
+    em_wp(_jit, _MTHC1(rn(t0), r0));
   } else
-    em_wp(_jit, _MTC1(rn(_ZERO), r0 + LE_P));
+    em_wp(_jit, _MTHC1(rn(_ZERO), r0));
 #endif
   unget_temp_gpr(_jit);
 }
