@@ -233,8 +233,10 @@ jit_end(jit_state_t *_jit, size_t *length)
   if (length)
     *length = end - start;
 
-  if (_jit->overflow)
+  if (_jit->overflow) {
+    jit_reset(_jit);
     return NULL;
+  }
 
   ASSERT(start);
   ASSERT(start <= end);
