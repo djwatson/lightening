@@ -20,8 +20,7 @@
 #ifndef _jit_ppc_h
 #define _jit_ppc_h
 
-#define JIT_HASH_CONSTS		1
-#define JIT_NUM_OPERANDS	3
+#define JIT_NEEDS_LITERAL_POOL 1
 
 #if __powerpc__
 #  if _CALL_ELF == 2
