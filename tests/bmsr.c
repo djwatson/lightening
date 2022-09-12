@@ -26,9 +26,6 @@ run_test(jit_state_t *j, uint8_t *arena_base, size_t arena_size)
   ASSERT(f(1, -1) == 1);
   ASSERT(f(-1, 1) == 1);
   ASSERT(f(-1, -1) == 1);
-#if __WORDSIZE == 64
-  ASSERT(f(0xfffffffff0, 0xff00000001) == 1);
-#endif
 }
 
 int

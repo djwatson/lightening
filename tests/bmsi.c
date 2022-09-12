@@ -7,11 +7,7 @@ run_test(jit_state_t *j, uint8_t *arena_base, size_t arena_size)
   size_t align = jit_enter_jit_abi(j, 0, 0, 0);
   jit_load_args_1(j, jit_operand_gpr (JIT_OPERAND_ABI_WORD, JIT_R0));
 
-#if __WORDSIZE == 64
-  jit_reloc_t r = jit_bmsi(j, JIT_R0, 0xff00000001);
-#else
   jit_reloc_t r = jit_bmsi(j, JIT_R0, 1);
-#endif
   jit_leave_jit_abi(j, 0, 0, align);
   jit_reti(j, 0);
   jit_patch_here(j, r);
@@ -24,9 +20,6 @@ run_test(jit_state_t *j, uint8_t *arena_base, size_t arena_size)
   ASSERT(f(1) == 1);
   ASSERT(f(-1) == 1);
   ASSERT(f(2) == 0);
-#if __WORDSIZE == 64
-  ASSERT(f(0xfffffffff0) == 1);
-#endif
 }
 
 int

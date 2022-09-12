@@ -23,21 +23,12 @@ CC_ARMv7=guix environment --pure -s armhf-linux --ad-hoc gcc-toolchain -- gcc
 CC_MIPS64EL=guix environment --pure -s mips64el-linux --ad-hoc gcc-toolchain -- gcc
 CC_MIPSEL=guix environment --pure -s mipsel-linux --ad-hoc gcc-toolchain -- gcc
 CC_PPC64LE=guix environment --pure -s powerpc64le-linux --ad-hoc gcc-toolchain -- gcc
-CFLAGS = -Wall -O0 -g $(DEBUG)
-LDFLAGS = -lpthread
+CFLAGS = -Wall -O0 -g
 RUNNER =
 
 all: $(foreach TARGET,$(TARGETS),$(addprefix test-$(TARGET)-,$(TESTS)))
 
 check: $(addprefix test-$(TARGET),$(TARGETS))
-
-test-vg-%: $(addprefix test-%-,$(TESTS))
-	@echo "Running unit tests..."
-	@set -e; for test in $?; do \
-	  echo "Testing: $$test"; \
-	  valgrind -q --error-exitcode=1 ./$$test; \
-	done
-	@echo "Success."
 
 test-%: $(addprefix test-%-,$(TESTS))
 	@echo "Running unit tests..."
@@ -53,31 +44,31 @@ lightening-%.o: ../lightening.h ../lightening/*.c ../lightening/*.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ -c ../lightening/lightening.c
 
 test-native-%: %.c lightening-native.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-native.o $< $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-native.o $<
 
 test-ia32-%: CC = $(CC_IA32)
 test-ia32-%: %.c lightening-ia32.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-ia32.o $< $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-ia32.o $<
 
 test-aarch64-%: CC = $(CC_AARCH64)
 test-aarch64-%: %.c lightening-aarch64.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-aarch64.o $< $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-aarch64.o $<
 
 test-armv7-%: CC = $(CC_ARMv7)
 test-armv7-%: %.c lightening-armv7.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-armv7.o $< $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-armv7.o $<
 
 test-mips64el-%: CC = $(CC_MIPS64EL)
 test-mips64el-%: %.c lightening-mips64el.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-mips64el.o $< $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-mips64el.o $<
 
 test-mipsel-%: CC = $(CC_MIPSEL)
 test-mipsel-%: %.c lightening-mipsel.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-mipsel.o $< $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-mipsel.o $<
 
 test-ppc64le-%: CC = $(CC_PPC64LE)
 test-ppc64le-%: %.c lightening-ppc64le.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-ppc64le.o $< $(LDFLAGS)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-ppc64le.o $<
 
 .PRECIOUS: $(foreach TARGET,$(TARGETS),$(addprefix test-$(TARGET)-,$(TESTS)))
 .PRECIOUS: $(foreach TARGET,$(TARGETS),lightening-$(TARGET).o)
