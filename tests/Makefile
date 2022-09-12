@@ -1,4 +1,4 @@
-TESTS=$(sort $(basename $(wildcard *.c)))
+TESTS ?= $(sort $(basename $(wildcard *.c)))
 TARGETS ?= native ia32 aarch64 armv7
 
 # Suitable values of cross-compiler variables for Debian:
@@ -20,11 +20,21 @@ CC = gcc
 CC_IA32=guix environment --pure -s i686-linux --ad-hoc gcc-toolchain -- gcc
 CC_AARCH64=guix environment --pure -s aarch64-linux --ad-hoc gcc-toolchain -- gcc
 CC_ARMv7=guix environment --pure -s armhf-linux --ad-hoc gcc-toolchain -- gcc
-CFLAGS = -Wall -O0 -g
+CFLAGS = -Wall -O0 -g $(DEBUG)
+LDFLAGS = -lpthread
+RUNNER =
 
 all: $(foreach TARGET,$(TARGETS),$(addprefix test-$(TARGET)-,$(TESTS)))
 
 check: $(addprefix test-$(TARGET),$(TARGETS))
+
+test-vg-%: $(addprefix test-%-,$(TESTS))
+	@echo "Running unit tests..."
+	@set -e; for test in $?; do \
+	  echo "Testing: $$test"; \
+	  valgrind -q --error-exitcode=1 ./$$test; \
+	done
+	@echo "Success."
 
 test-%: $(addprefix test-%-,$(TESTS))
 	@echo "Running unit tests..."
@@ -36,23 +46,23 @@ test-%: $(addprefix test-%-,$(TESTS))
 
 .PHONY: test check
 
-lightening-%.o: ../lightening.h ../lightening/*.c
+lightening-%.o: ../lightening.h ../lightening/*.c ../lightening/*.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ -c ../lightening/lightening.c
 
 test-native-%: %.c lightening-native.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-native.o $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-native.o $< $(LDFLAGS)
 
 test-ia32-%: CC = $(CC_IA32)
 test-ia32-%: %.c lightening-ia32.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-ia32.o $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-ia32.o $< $(LDFLAGS)
 
 test-aarch64-%: CC = $(CC_AARCH64)
 test-aarch64-%: %.c lightening-aarch64.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-aarch64.o $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-aarch64.o $< $(LDFLAGS)
 
 test-armv7-%: CC = $(CC_ARMv7)
 test-armv7-%: %.c lightening-armv7.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-armv7.o $<
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-armv7.o $< $(LDFLAGS)
 
 .PRECIOUS: $(foreach TARGET,$(TARGETS),$(addprefix test-$(TARGET)-,$(TESTS)))
 .PRECIOUS: $(foreach TARGET,$(TARGETS),lightening-$(TARGET).o)
