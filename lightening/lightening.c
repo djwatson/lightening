@@ -260,6 +260,29 @@ is_power_of_two (unsigned x)
   return x && !(x & (x-1));
 }
 
+inline static jit_word_t
+jit_align_up(jit_word_t val, jit_uword_t a)
+{
+	if (!a)
+		return val;
+
+	jit_word_t rem = val % a;
+
+	if (rem == 0)
+		return val;
+
+	return val + a - rem;
+}
+
+inline static jit_word_t
+jit_align_down(jit_word_t val, jit_uword_t a)
+{
+	if (!a)
+		return val;
+
+	return val - (val % a);
+}
+
 static jit_gpr_t
 get_temp_gpr(jit_state_t *_jit)
 {
