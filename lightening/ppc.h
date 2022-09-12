@@ -106,4 +106,12 @@ typedef enum {
 #define JIT_NOREG		_NOREG
 } jit_reg_t;
 
+// For example atomics are fairly long unbreakable sequences
+// that can cause the pretty tight literal pool limits to run over,
+// so make sure we give ourselves enough space to emit at least one
+// uninterrupted sequence.
+//
+// TODO: check if this is sound reasoning or just a hack.
+#define JIT_EXTRA_SPACE (16 * sizeof(uint32_t))
+
 #endif /* _jit_ppc_h */

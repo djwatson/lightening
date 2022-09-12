@@ -85,23 +85,24 @@ DEFINE_ENCODER(imms, 6, 10, unsigned, uint32_t)
 DEFINE_ENCODER(size, 2, 22, unsigned, uint32_t)
 
 #define DEFINE_PATCHABLE_INSTRUCTION(name, kind, RELOC, rsh)            \
-  static int32_t                                                        \
+  static inline int32_t                                                 \
   read_##name##_offset(uint32_t *loc)                                   \
   {                                                                     \
     return read_signed_bitfield(*loc, kind##_width, kind##_shift);      \
   }                                                                     \
-  static int offset_in_##name##_range(ptrdiff_t diff, int flags) maybe_unused; \
-  static int                                                            \
+  static inline int                                                     \
+  offset_in_##name##_range(ptrdiff_t diff, int flags);                  \
+  static inline int                                                     \
   offset_in_##name##_range(ptrdiff_t diff, int flags)                   \
   {                                                                     \
     return in_signed_range(diff, kind##_width);                         \
   }                                                                     \
-  static void                                                           \
+  static inline void                                                    \
   patch_##name##_offset(uint32_t *loc, ptrdiff_t diff)                  \
   {                                                                     \
     *loc = write_##kind##_bitfield(*loc, diff);                         \
   }                                                                     \
-  static jit_reloc_t                                                    \
+  static inline jit_reloc_t                                             \
   emit_##name(jit_state_t *_jit, uint32_t inst)                         \
   {                                                                     \
     while (1) {                                                         \

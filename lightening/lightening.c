@@ -75,6 +75,7 @@ struct jit_state
   uint8_t temp_fpr_saved;
   uint8_t overflow;
   uint8_t emitting_data;
+  uint8_t preparing_call;
   int frame_size; // Used to know when to align stack.
 #ifdef JIT_NEEDS_LITERAL_POOL
   struct jit_literal_pool *pool;
@@ -179,7 +180,7 @@ jit_address(jit_state_t *_jit)
 void
 jit_begin(jit_state_t *_jit, uint8_t* buf, size_t length)
 {
-  ASSERT (!_jit->start);
+  ASSERT (_jit);
 
   _jit->pc.uc = _jit->start = buf;
   _jit->limit = buf + length;
@@ -226,11 +227,16 @@ jit_end(jit_state_t *_jit, size_t *length)
     emit_literal_pool(_jit, NO_GUARD_NEEDED);
 #endif
 
-  if (_jit->overflow)
-    return NULL;
-
   uint8_t *start = _jit->start;
   uint8_t *end = _jit->pc.uc;
+
+  if (length)
+    *length = end - start;
+
+  if (_jit->overflow) {
+    jit_reset(_jit);
+    return NULL;
+  }
 
   ASSERT(start);
   ASSERT(start <= end);
@@ -238,10 +244,6 @@ jit_end(jit_state_t *_jit, size_t *length)
   ASSERT(!_jit->emitting_data);
 
   jit_flush (start, end);
-
-  if (length) {
-    *length = end - start;
-  }
 
   _jit->pc.uc = _jit->start = _jit->limit = NULL;
   _jit->overflow = 0;
@@ -257,6 +259,29 @@ static int
 is_power_of_two (unsigned x)
 {
   return x && !(x & (x-1));
+}
+
+inline static jit_word_t
+jit_align_up(jit_word_t val, jit_uword_t a)
+{
+	if (!a)
+		return val;
+
+	jit_word_t rem = val % a;
+
+	if (rem == 0)
+		return val;
+
+	return val + a - rem;
+}
+
+inline static jit_word_t
+jit_align_down(jit_word_t val, jit_uword_t a)
+{
+	if (!a)
+		return val;
+
+	return val - (val % a);
 }
 
 static jit_gpr_t
@@ -305,24 +330,30 @@ static inline void emit_u8(jit_state_t *_jit, uint8_t u8) {
   if (UNLIKELY(_jit->pc.uc + 1 > _jit->limit)) {
     _jit->overflow = 1;
   } else {
-    *_jit->pc.uc++ = u8;
+    *_jit->pc.uc = u8;
   }
+
+  _jit->pc.uc++;
 }
 
 static inline void emit_u16(jit_state_t *_jit, uint16_t u16) {
   if (UNLIKELY(_jit->pc.us + 1 > (uint16_t*)_jit->limit)) {
     _jit->overflow = 1;
   } else {
-    *_jit->pc.us++ = u16;
+    *_jit->pc.us = u16;
   }
+
+  _jit->pc.us++;
 }
 
 static inline void emit_u32(jit_state_t *_jit, uint32_t u32) {
   if (UNLIKELY(_jit->pc.ui + 1 > (uint32_t*)_jit->limit)) {
     _jit->overflow = 1;
   } else {
-    *_jit->pc.ui++ = u32;
+    *_jit->pc.ui = u32;
   }
+
+  _jit->pc.ui++;
 }
 
 #ifdef JIT_NEEDS_LITERAL_POOL
@@ -343,8 +374,10 @@ static inline void emit_u64(jit_state_t *_jit, uint64_t u64) {
   if (UNLIKELY(_jit->pc.ul + 1 > (uint64_t*)_jit->limit)) {
     _jit->overflow = 1;
   } else {
-    *_jit->pc.ul++ = u64;
+    *_jit->pc.ul = u64;
   }
+
+  _jit->pc.ul++;
 }
 
 static inline void emit_uintptr(jit_state_t *_jit, uintptr_t u) {
@@ -718,8 +751,8 @@ abi_imm_to_gpr(jit_state_t *_jit, enum jit_operand_abi abi, jit_gpr_t dst,
 }
 
 static void
-abi_gpr_to_mem(jit_state_t *_jit, enum jit_operand_abi abi,
-               jit_gpr_t base, ptrdiff_t offset, jit_gpr_t src)
+abi_gpr_to_mem_walign(jit_state_t *_jit, enum jit_operand_abi abi,
+                      jit_gpr_t base, ptrdiff_t offset, jit_gpr_t src)
 {
   // Invariant: GPR memory destination operand sizes are rounded up to words.
   // True for ARM, AArch64, IA32, and X86-64.  Some ABIs expect to be able to
@@ -752,6 +785,56 @@ abi_gpr_to_mem(jit_state_t *_jit, enum jit_operand_abi abi,
   default:
     abort();
   }
+}
+
+static void
+abi_gpr_to_mem_nalign(jit_state_t *_jit, enum jit_operand_abi abi,
+                      jit_gpr_t base, ptrdiff_t offset, jit_gpr_t src)
+{
+  switch (abi) {
+  case JIT_OPERAND_ABI_UINT8:
+  case JIT_OPERAND_ABI_INT8:
+    jit_stxi_c(_jit, offset, base, src);
+    break;
+  case JIT_OPERAND_ABI_UINT16:
+  case JIT_OPERAND_ABI_INT16:
+    jit_stxi_s(_jit, offset, base, src);
+    break;
+#if __WORDSIZE == 32
+  case JIT_OPERAND_ABI_UINT32:
+  case JIT_OPERAND_ABI_POINTER:
+#endif
+  case JIT_OPERAND_ABI_INT32:
+    jit_stxi_i(_jit, offset, base, src);
+    break;
+#if __WORDSIZE == 64
+  case JIT_OPERAND_ABI_UINT32:
+    jit_stxi_i(_jit, offset, base, src);
+    break;
+  case JIT_OPERAND_ABI_UINT64:
+  case JIT_OPERAND_ABI_POINTER:
+  case JIT_OPERAND_ABI_INT64:
+    jit_stxi_l(_jit, offset, base, src);
+    break;
+#endif
+#if JIT_PASS_FLOATS_IN_GPRS
+  case JIT_OPERAND_ABI_FLOAT:
+    jit_stxi_w(_jit, offset, base, src);
+    break;
+#endif
+  default:
+    abort();
+  }
+}
+
+static void
+abi_gpr_to_mem(jit_state_t *_jit, enum jit_operand_abi abi,
+               jit_gpr_t base, ptrdiff_t offset, jit_gpr_t src)
+{
+  if (JIT_CALL_STACK_ALIGN_WORD && _jit->preparing_call)
+    abi_gpr_to_mem_walign(_jit, abi, base, offset, src);
+  else
+    abi_gpr_to_mem_nalign(_jit, abi, base, offset, src);
 }
 
 static void
@@ -911,7 +994,6 @@ move_operand(jit_state_t *_jit, jit_operand_t dst, jit_operand_t src)
   case MOVE_MEM_TO_MEM:
     return abi_mem_to_mem(_jit, src.abi, dst.loc.mem.base, dst.loc.mem.offset,
                           src.loc.mem.base, src.loc.mem.offset);
-
   default:
     abort();
   }
@@ -1232,15 +1314,17 @@ jit_leave_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
   ASSERT(offset <= frame_size);
 
   jit_shrink_stack(_jit, frame_size);
+  _jit->frame_size -= jit_initial_frame_size();
 }
 
 // Precondition: stack is already aligned.
 static size_t
 prepare_call_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 {
+  _jit->preparing_call = 1;
   jit_operand_t dst[argc];
   struct abi_arg_iterator iter;
-  
+
   // Compute shuffle destinations and space for spilled arguments.
   reset_abi_arg_iterator(&iter, argc, args);
   for (size_t i = 0; i < argc; i++)
@@ -1267,6 +1351,7 @@ prepare_call_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 
   jit_move_operands(_jit, dst, args, argc);
 
+  _jit->preparing_call = 0;
   return stack_size;
 }
 
@@ -1294,7 +1379,6 @@ void
 jit_locate_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 {
   struct abi_arg_iterator iter;
-    
   reset_abi_arg_iterator(&iter, argc, args);
   iter.stack_size += _jit->frame_size;
   for (size_t i = 0; i < argc; i++)
@@ -1318,10 +1402,9 @@ jit_load_args(jit_state_t *_jit, size_t argc, jit_operand_t args[])
 static uint32_t
 literal_pool_byte_size(struct jit_literal_pool *pool)
 {
-  // Assume that we might need a uint32_t to branch over a table, and up
-  // to 7 bytes for alignment of the table.  Then we assume that no
-  // entry will be more than two words.
-  return sizeof(uint32_t) + 7 + pool->size * sizeof(uintptr_t) * 2;
+  // Check arch header for actual values for these literals, or if applicable,
+  // see default values defined in lightening.h
+  return JIT_EXTRA_SPACE + JIT_JMP_MAX_SIZE + 7 + pool->size * JIT_LITERAL_MAX_SIZE;
 }
 
 static void

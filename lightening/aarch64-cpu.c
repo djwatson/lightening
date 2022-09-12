@@ -959,8 +959,13 @@ emit_veneer(jit_state_t *_jit, jit_pointer_t target)
 static void
 movr(jit_state_t *_jit, int32_t r0, int32_t r1)
 {
-  if (r0 != r1)
-    MOV(_jit, r0, r1);
+  if (r0 != r1) {
+    // Stack pointer requires special handling
+    if (r1 == jit_gpr_regno(_X31) || r0 == jit_gpr_regno(_X31))
+        ADDI(_jit, r0, r1, 0);
+    else
+        MOV(_jit, r0, r1);
+  }
 }
 
 static void
@@ -1378,7 +1383,7 @@ bltr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-blti(jit_state_t *_jit, int32_t r0, int32_t i1)
+blti(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_LT,r0,i1);
 }
@@ -1390,7 +1395,7 @@ bltr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-blti_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+blti_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_CC,r0,i1);
 }
@@ -1402,7 +1407,7 @@ bler(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-blei(jit_state_t *_jit, int32_t r0, int32_t i1)
+blei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_LE,r0,i1);
 }
@@ -1414,7 +1419,7 @@ bler_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-blei_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+blei_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_LS,r0,i1);
 }
@@ -1432,7 +1437,7 @@ bger(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bgei(jit_state_t *_jit, int32_t r0, int32_t i1)
+bgei(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_GE,r0,i1);
 }
@@ -1444,7 +1449,7 @@ bger_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bgei_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bgei_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_CS,r0,i1);
 }
@@ -1456,7 +1461,7 @@ bgtr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bgti(jit_state_t *_jit, int32_t r0, int32_t i1)
+bgti(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_GT,r0,i1);
 }
@@ -1468,7 +1473,7 @@ bgtr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bgti_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bgti_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bcci(_jit,BCC_HI,r0,i1);
 }
@@ -1600,7 +1605,7 @@ boaddr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-boaddi(jit_state_t *_jit, int32_t r0, int32_t i1)
+boaddi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return baddi(_jit,BCC_VS,r0,i1);
 }
@@ -1612,7 +1617,7 @@ boaddr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-boaddi_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+boaddi_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return baddi(_jit,BCC_HS,r0,i1);
 }
@@ -1624,7 +1629,7 @@ bxaddr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bxaddi(jit_state_t *_jit, int32_t r0, int32_t i1)
+bxaddi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return baddi(_jit,BCC_VC,r0,i1);
 }
@@ -1636,7 +1641,7 @@ bxaddr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bxaddi_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bxaddi_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return baddi(_jit,BCC_LO,r0,i1);
 }
@@ -1662,7 +1667,7 @@ bosubr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bosubi(jit_state_t *_jit, int32_t r0, int32_t i1)
+bosubi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bsubi(_jit,BCC_VS,r0,i1);
 }
@@ -1674,7 +1679,7 @@ bosubr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bosubi_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bosubi_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bsubi(_jit,BCC_LO,r0,i1);
 }
@@ -1686,7 +1691,7 @@ bxsubr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bxsubi(jit_state_t *_jit, int32_t r0, int32_t i1)
+bxsubi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bsubi(_jit,BCC_VC,r0,i1);
 }
@@ -1698,7 +1703,7 @@ bxsubr_u(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bxsubi_u(jit_state_t *_jit, int32_t r0, int32_t i1)
+bxsubi_u(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bsubi(_jit,BCC_HS,r0,i1);
 }
@@ -1733,7 +1738,7 @@ bmsr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bmsi(jit_state_t *_jit, int32_t r0, int32_t i1)
+bmsi(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bmxi(_jit,BCC_NE,r0,i1);
 }
@@ -1745,7 +1750,7 @@ bmcr(jit_state_t *_jit, int32_t r0, int32_t r1)
 }
 
 static jit_reloc_t
-bmci(jit_state_t *_jit, int32_t r0, int32_t i1)
+bmci(jit_state_t *_jit, int32_t r0, jit_word_t i1)
 {
   return bmxi(_jit,BCC_EQ,r0,i1);
 }
@@ -2532,14 +2537,20 @@ str_atomic(jit_state_t *_jit, int32_t loc, int32_t val)
 static void
 swap_atomic(jit_state_t *_jit, int32_t dst, int32_t loc, int32_t val)
 {
-  void *retry = jit_address(_jit);
   int32_t result = jit_gpr_regno(get_temp_gpr(_jit));
-  int32_t val_or_tmp = dst == val ? jit_gpr_regno(get_temp_gpr(_jit)) : val;
-  movr(_jit, val_or_tmp, val);
-  LDAXR(_jit, dst, loc);
-  STLXR(_jit, val_or_tmp, loc, result);
+  int32_t dst_or_tmp;
+  if (dst == val || dst == loc)
+	  dst_or_tmp = jit_gpr_regno(get_temp_gpr(_jit));
+  else
+	  dst_or_tmp = dst;
+
+  void *retry = jit_address(_jit);
+  LDAXR(_jit, dst_or_tmp, loc);
+  STLXR(_jit, val, loc, result);
   jit_patch_there(_jit, bnei(_jit, result, 0), retry);
-  if (dst == val) unget_temp_gpr(_jit);
+  movr(_jit, dst, dst_or_tmp);
+
+  if (dst == val || dst == loc) unget_temp_gpr(_jit);
   unget_temp_gpr(_jit);
 }
 
@@ -2548,7 +2559,7 @@ cas_atomic(jit_state_t *_jit, int32_t dst, int32_t loc, int32_t expected,
            int32_t desired)
 {
   int32_t dst_or_tmp;
-  if (dst == loc || dst == expected || dst == expected)
+  if (dst == loc || dst == expected || dst == desired)
     dst_or_tmp = jit_gpr_regno(get_temp_gpr(_jit));
   else
     dst_or_tmp = dst;
@@ -2561,7 +2572,9 @@ cas_atomic(jit_state_t *_jit, int32_t dst, int32_t loc, int32_t expected,
   unget_temp_gpr(_jit);
   jit_patch_here(_jit, bad);
   movr(_jit, dst, dst_or_tmp);
-  unget_temp_gpr(_jit);
+
+  if (dst == loc || dst == expected || dst == desired)
+    unget_temp_gpr(_jit);
 }
 
 static void

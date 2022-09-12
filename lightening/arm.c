@@ -108,8 +108,17 @@ next_abi_arg(struct abi_arg_iterator *iter, jit_operand_t *arg)
       }
     }
   }
+
+  // doubles passed on the stack need to be aligned up to the next 8 byte boundary
+  if (abi == JIT_OPERAND_ABI_DOUBLE)
+    iter->stack_size = jit_align_up(iter->stack_size, 8);
+
   *arg = jit_operand_mem (abi, JIT_SP, iter->stack_size);
-  iter->stack_size += 4;
+
+  if (abi == JIT_OPERAND_ABI_DOUBLE)
+    iter->stack_size += 8;
+  else
+    iter->stack_size += 4;
 }
 
 static void

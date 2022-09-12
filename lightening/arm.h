@@ -117,7 +117,7 @@
 #define JIT_F4 _D4
 #define JIT_F5 _D5
 #define JIT_F6 _D6
-#define JIT_FTMP _D7
+#define JIT_F7 _D7
 
 #define JIT_VF0 _D8
 #define JIT_VF1 _D9
@@ -126,9 +126,8 @@
 #define JIT_VF4 _D12
 #define JIT_VF5 _D13
 #define JIT_VF6 _D14
-#define JIT_VF7 _D15
+#define JIT_FTMP _D15
 
 #define JIT_PLATFORM_CALLEE_SAVE_GPRS _LR, JIT_TMP1
-
 
 #endif /* _jit_arm_h */
