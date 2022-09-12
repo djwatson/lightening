@@ -195,4 +195,7 @@
 
 #define JIT_INST_MAX_SIZE JIT_JMP_MAX_SIZE
 
+// A little bit overkill, but just to be safe
+#define JIT_EXTRA_SPACE (16 * sizeof(uint32_t))
+
 #endif				/* _jit_mips_h */
