@@ -1,5 +1,5 @@
 TESTS ?= $(sort $(basename $(wildcard *.c)))
-TARGETS ?= native ia32 aarch64 armv7 mips64el mipsel ppc ppc64 ppc64le
+TARGETS ?= native ia32 aarch64 armv7 mips64el mipsel ppc64le
 
 # Suitable values of cross-compiler variables for Debian:
 #
@@ -22,8 +22,6 @@ CC_AARCH64=guix environment --pure -s aarch64-linux --ad-hoc gcc-toolchain -- gc
 CC_ARMv7=guix environment --pure -s armhf-linux --ad-hoc gcc-toolchain -- gcc
 CC_MIPS64EL=guix environment --pure -s mips64el-linux --ad-hoc gcc-toolchain -- gcc
 CC_MIPSEL=guix environment --pure -s mipsel-linux --ad-hoc gcc-toolchain -- gcc
-CC_PPC=guix environment --pure -s powerpc-linux --ad-hoc gcc-toolchain -- gcc
-CC_PPC64=guix environment --pure -s powerpc64-linux --ad-hoc gcc-toolchain -- gcc
 CC_PPC64LE=guix environment --pure -s powerpc64le-linux --ad-hoc gcc-toolchain -- gcc
 CFLAGS = -Wall -O0 -g $(DEBUG)
 LDFLAGS = -lpthread
@@ -76,14 +74,6 @@ test-mips64el-%: %.c lightening-mips64el.o test.h
 test-mipsel-%: CC = $(CC_MIPSEL)
 test-mipsel-%: %.c lightening-mipsel.o test.h
 	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-mipsel.o $< $(LDFLAGS)
-
-test-ppc-%: CC = $(CC_PPC)
-test-ppc-%: %.c lightening-ppc.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-ppc.o $< $(LDFLAGS)
-
-test-ppc64-%: CC = $(CC_PPC64)
-test-ppc64-%: %.c lightening-ppc.o test.h
-	$(CC) $(CFLAGS) $(CPPFLAGS) -I.. -o $@ lightening-ppc64.o $< $(LDFLAGS)
 
 test-ppc64le-%: CC = $(CC_PPC64LE)
 test-ppc64le-%: %.c lightening-ppc64le.o test.h

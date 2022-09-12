@@ -68,3 +68,4 @@ ppc64el:
     - dpkg --add-architecture ppc64el
     - apt-get update -qq
     - apt-get install -y gcc-powerpc64le-linux-gnu libc6-dev-ppc64el-cross libc6:ppc64el
+    - make -C tests test-ppc64le CC_PPC64LE="powerpc64le-linux-gnu-gcc"
