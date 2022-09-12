@@ -180,7 +180,7 @@ jit_address(jit_state_t *_jit)
 void
 jit_begin(jit_state_t *_jit, uint8_t* buf, size_t length)
 {
-  ASSERT (!_jit->start);
+  ASSERT (_jit);
 
   _jit->pc.uc = _jit->start = buf;
   _jit->limit = buf + length;
@@ -227,11 +227,14 @@ jit_end(jit_state_t *_jit, size_t *length)
     emit_literal_pool(_jit, NO_GUARD_NEEDED);
 #endif
 
-  if (_jit->overflow)
-    return NULL;
-
   uint8_t *start = _jit->start;
   uint8_t *end = _jit->pc.uc;
+
+  if (length)
+    *length = end - start;
+
+  if (_jit->overflow)
+    return NULL;
 
   ASSERT(start);
   ASSERT(start <= end);
@@ -239,10 +242,6 @@ jit_end(jit_state_t *_jit, size_t *length)
   ASSERT(!_jit->emitting_data);
 
   jit_flush (start, end);
-
-  if (length) {
-    *length = end - start;
-  }
 
   _jit->pc.uc = _jit->start = _jit->limit = NULL;
   _jit->overflow = 0;
@@ -329,24 +328,30 @@ static inline void emit_u8(jit_state_t *_jit, uint8_t u8) {
   if (UNLIKELY(_jit->pc.uc + 1 > _jit->limit)) {
     _jit->overflow = 1;
   } else {
-    *_jit->pc.uc++ = u8;
+    *_jit->pc.uc = u8;
   }
+
+  _jit->pc.uc++;
 }
 
 static inline void emit_u16(jit_state_t *_jit, uint16_t u16) {
   if (UNLIKELY(_jit->pc.us + 1 > (uint16_t*)_jit->limit)) {
     _jit->overflow = 1;
   } else {
-    *_jit->pc.us++ = u16;
+    *_jit->pc.us = u16;
   }
+
+  _jit->pc.us++;
 }
 
 static inline void emit_u32(jit_state_t *_jit, uint32_t u32) {
   if (UNLIKELY(_jit->pc.ui + 1 > (uint32_t*)_jit->limit)) {
     _jit->overflow = 1;
   } else {
-    *_jit->pc.ui++ = u32;
+    *_jit->pc.ui = u32;
   }
+
+  _jit->pc.ui++;
 }
 
 #ifdef JIT_NEEDS_LITERAL_POOL
@@ -367,8 +372,10 @@ static inline void emit_u64(jit_state_t *_jit, uint64_t u64) {
   if (UNLIKELY(_jit->pc.ul + 1 > (uint64_t*)_jit->limit)) {
     _jit->overflow = 1;
   } else {
-    *_jit->pc.ul++ = u64;
+    *_jit->pc.ul = u64;
   }
+
+  _jit->pc.ul++;
 }
 
 static inline void emit_uintptr(jit_state_t *_jit, uintptr_t u) {
@@ -1305,6 +1312,7 @@ jit_leave_jit_abi(jit_state_t *_jit, size_t v, size_t vf, size_t frame_size)
   ASSERT(offset <= frame_size);
 
   jit_shrink_stack(_jit, frame_size);
+  _jit->frame_size -= jit_initial_frame_size();
 }
 
 // Precondition: stack is already aligned.
