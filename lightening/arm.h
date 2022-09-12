@@ -129,6 +129,7 @@
 #define JIT_VF7 _D15
 
 #define JIT_PLATFORM_CALLEE_SAVE_GPRS _LR, JIT_TMP1
+#define JIT_PLATFORM_CALLEE_SAVE_FPRS
 
 
 #endif /* _jit_arm_h */
