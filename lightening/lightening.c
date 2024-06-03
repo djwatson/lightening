@@ -25,7 +25,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
-#include <sys/mman.h>
+#include <strings.h>
 
 #include "../lightening.h"
 

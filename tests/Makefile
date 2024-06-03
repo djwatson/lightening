@@ -20,7 +20,7 @@ CC = gcc
 CC_IA32=guix environment --pure -s i686-linux --ad-hoc gcc-toolchain -- gcc
 CC_AARCH64=guix environment --pure -s aarch64-linux --ad-hoc gcc-toolchain -- gcc
 CC_ARMv7=guix environment --pure -s armhf-linux --ad-hoc gcc-toolchain -- gcc
-CFLAGS = -Wall -O0 -g
+CFLAGS = -Wall -O0 -g -std=c99
 
 all: $(foreach TARGET,$(TARGETS),$(addprefix test-$(TARGET)-,$(TESTS)))
 
