@@ -1265,7 +1265,8 @@ prepare_call_args(jit_state_t *_jit, size_t argc, jit_operand_t args[],
   struct abi_arg_iterator iter;
 
   // Compute shuffle destinations and space for spilled arguments.
-  reset_abi_arg_iterator(&iter, argc, args);
+  reset_abi_arg_iterator(&iter, argc, src);
+
   for (size_t i = 0; i < argc; i++)
     next_abi_arg(&iter, &dst[i]);
 
@@ -1276,12 +1277,12 @@ prepare_call_args(jit_state_t *_jit, size_t argc, jit_operand_t args[],
   for (size_t i = 0; i < argc; i++) {
     switch(args[i].kind) {
     case JIT_OPERAND_KIND_GPR:
-      if (jit_same_gprs (args[i].loc.gpr.gpr, JIT_SP))
-        args[i].loc.gpr.addend += stack_size;
+      if (jit_same_gprs (src[i].loc.gpr.gpr, JIT_SP))
+        src[i].loc.gpr.addend += stack_size;
       break;
     case JIT_OPERAND_KIND_MEM:
-      if (jit_same_gprs (args[i].loc.mem.base, JIT_SP))
-        args[i].loc.mem.offset += stack_size;
+      if (jit_same_gprs (src[i].loc.mem.base, JIT_SP))
+        src[i].loc.mem.offset += stack_size;
       break;
     default:
       break;
