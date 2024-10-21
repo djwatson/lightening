@@ -1198,6 +1198,7 @@ divremi(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0,
   movi(_jit, jit_gpr_regno(tmp), i0);
 
   divremr(_jit, r0, r1, jit_gpr_regno(tmp), sign, divide);
+  unget_temp_gpr(_jit);
 }
 
 static void
