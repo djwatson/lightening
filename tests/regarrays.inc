@@ -98,7 +98,13 @@ static const jit_gpr_t vregs[] = {
 
 static const jit_fpr_t fregs[] = {
   JIT_F0, JIT_F1, JIT_F2,
-  JIT_F2, JIT_F3, JIT_F4,
+  JIT_F3, JIT_F4,
+#ifdef JIT_F5
+  JIT_F5,
+#endif
+#ifdef JIT_F6
+  JIT_F6,
+#endif
 #ifdef JIT_F7
   JIT_F7,
 #endif
