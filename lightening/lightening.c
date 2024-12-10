@@ -21,6 +21,8 @@
 # include "config.h"
 #endif
 
+#define _DEFAULT_SOURCE
+
 #include <assert.h>
 #include <fcntl.h>
 #include <limits.h>
