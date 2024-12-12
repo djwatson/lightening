@@ -2186,10 +2186,9 @@ ldxi_uc(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 static void
 ldxi_s(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 {
-  ASSERT(!(i0 & 1));
-  if (i0 >= 0 && i0 <= 8191) {
+  if (!(i0 & 1) && i0 >= 0 && i0 <= 8191) {
     LDRSHI(_jit, r0, r1, i0 >> 1);
-  } else if (i0 > -256 && i0 < 0) {
+  } else if (i0 > -256 && i0 < 255) {
     LDURSH(_jit, r0, r1, i0);
   } else {
     int32_t r2 = (r0 == r1) ? jit_gpr_regno(get_temp_gpr(_jit)) : r0;
@@ -2212,10 +2211,9 @@ ldxr_us(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 static void
 ldxi_us(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 {
-  ASSERT(!(i0 & 1));
-  if (i0 >= 0 && i0 <= 8191) {
+  if (!(i0 & 1) && i0 >= 0 && i0 <= 8191) {
     LDRHI(_jit, r0, r1, i0 >> 1);
-  } else if (i0 > -256 && i0 < 0) {
+  } else if (i0 > -256 && i0 < 255) {
     LDURH(_jit, r0, r1, i0);
   } else {
     int32_t r2 = (r0 == r1) ? jit_gpr_regno(get_temp_gpr(_jit)) : r0;
@@ -2232,10 +2230,9 @@ ldxi_us(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 static void
 ldxi_i(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 {
-  ASSERT(!(i0 & 3));
-  if (i0 >= 0 && i0 <= 16383) {
+  if (!(i0 & 3) && i0 >= 0 && i0 <= 16383) {
     LDRSWI(_jit, r0, r1, i0 >> 2);
-  } else if (i0 > -256 && i0 < 0) {
+  } else if (i0 > -256 && i0 < 255) {
     LDURSW(_jit, r0, r1, i0);
   } else {
     int32_t r2 = (r0 == r1) ? jit_gpr_regno(get_temp_gpr(_jit)) : r0;
@@ -2258,10 +2255,9 @@ ldxr_ui(jit_state_t *_jit, int32_t r0, int32_t r1, int32_t r2)
 static void
 ldxi_ui(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 {
-  ASSERT(!(i0 & 3));
-  if (i0 >= 0 && i0 <= 16383) {
+  if (!(i0 & 3) && i0 >= 0 && i0 <= 16383) {
     LDRWI(_jit, r0, r1, i0 >> 2);
-  } else if (i0 > -256 && i0 < 0) {
+  } else if (i0 > -256 && i0 < 255) {
     LDURW(_jit, r0, r1, i0);
   } else {
     int32_t r2 = (r0 == r1) ? jit_gpr_regno(get_temp_gpr(_jit)) : r0;
@@ -2278,10 +2274,9 @@ ldxi_ui(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 static void
 ldxi_l(jit_state_t *_jit, int32_t r0, int32_t r1, jit_word_t i0)
 {
-  ASSERT(!(i0 & 7));
-  if (i0 >= 0 && i0 <= 32767) {
+  if (!(i0 & 7) && i0 >= 0 && i0 <= 32767) {
     LDRI(_jit, r0, r1, i0 >> 3);
-  } else if (i0 > -256 && i0 < 0) {
+  } else if (i0 > -256 && i0 < 255) {
     LDUR(_jit, r0, r1, i0);
   } else {
     int32_t r2 = (r0 == r1) ? jit_gpr_regno(get_temp_gpr(_jit)) : r0;
@@ -2346,10 +2341,9 @@ stxi_c(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 static void
 stxi_s(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 {
-  ASSERT(!(i0 & 1));
-  if (i0 >= 0 && i0 <= 8191) {
+  if (!(i0 & 1) && i0 >= 0 && i0 <= 8191) {
     STRHI(_jit, r1, r0, i0 >> 1);
-  } else if (i0 > -256 && i0 < 0) {
+  } else if (i0 > -256 && i0 < 255) {
     STURH(_jit, r1, r0, i0);
   } else {
     jit_gpr_t reg = get_temp_gpr(_jit);
@@ -2362,10 +2356,9 @@ stxi_s(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 static void
 stxi_i(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 {
-  ASSERT(!(i0 & 3));
-  if (i0 >= 0 && i0 <= 16383) {
+  if (!(i0 & 3) && i0 >= 0 && i0 <= 16383) {
     STRWI(_jit, r1, r0, i0 >> 2);
-  } else if (i0 > -256 && i0 < 0) {
+  } else if (i0 > -256 && i0 < 255) {
     STURW(_jit, r1, r0, i0);
   } else {
     jit_gpr_t reg = get_temp_gpr(_jit);
@@ -2378,10 +2371,9 @@ stxi_i(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 static void
 stxi_l(jit_state_t *_jit, jit_word_t i0, int32_t r0, int32_t r1)
 {
-  ASSERT(!(i0 & 7));
-  if (i0 >= 0 && i0 <= 32767) {
+  if (!(i0 & 7) && i0 >= 0 && i0 <= 32767) {
     STRI(_jit, r1, r0, i0 >> 3);
-  } else if (i0 > -256 && i0 < 0) {
+  } else if (i0 > -256 && i0 < 255) {
     STUR(_jit, r1, r0, i0);
   } else {
     jit_gpr_t reg = get_temp_gpr(_jit);
