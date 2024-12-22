@@ -177,7 +177,7 @@ jit_address(jit_state_t *_jit)
 {
   ASSERT (_jit->start);
   jit_pointer_t ret = _jit->pc.uc;
-  return _jit->emitting_data ? ret : jit_address_to_function_pointer (ret);
+  return _jit->emitting_data ? ret : (jit_pointer_t)jit_address_to_function_pointer (ret);
 }
 
 void
@@ -987,7 +987,7 @@ move_one(jit_state_t *_jit, jit_operand_t *dst, jit_operand_t *src,
         break;
       case BEING_MOVED: {
         jit_operand_t tmp;
-        if (is_fpr_arg (src[j].kind)) {
+        if (is_fpr_arg ((enum jit_operand_abi)src[j].kind)) {
           tmp_fpr = 1;
           tmp = jit_operand_fpr(src[j].abi, get_temp_fpr(_jit));
         } else {
