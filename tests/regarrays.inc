@@ -201,7 +201,7 @@ static const size_t f_count = ARRAY_SIZE (fregs);
 static const size_t vf_count = ARRAY_SIZE (vfregs);
 static const size_t gpr_count = r_count + v_count;
 
-static jit_gpr_t
+static inline jit_gpr_t
 gpr_ref (uintptr_t i)
 {
   if (i < r_count)
